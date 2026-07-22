@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+
+    <group name="General">
+        <entry name="serverUrl" type="String">
+            <label>ntfy server base URL (e.g. https://ntfy.sh, no trailing slash).</label>
+            <default></default>
+        </entry>
+        <entry name="topics" type="String">
+            <label>Comma-separated list of topics to subscribe to.</label>
+            <default></default>
+        </entry>
+        <entry name="maxMessages" type="Int">
+            <label>How many messages to keep in the feed.</label>
+            <default>100</default>
+        </entry>
+        <entry name="historySince" type="String">
+            <label>Backfill window on reconnect (e.g. 1h, 12h, all).</label>
+            <default>1h</default>
+        </entry>
+        <entry name="textScale" type="Double">
+            <label>Text size multiplier (1.0 = default).</label>
+            <default>1.0</default>
+            <min>0.7</min>
+            <max>1.6</max>
+        </entry>
+        <entry name="showDividers" type="Bool">
+            <label>Draw a thin separator line between messages.</label>
+            <default>true</default>
+        </entry>
+        <entry name="renderMarkdown" type="Bool">
+            <label>Render Markdown in message bodies and emoji shortcodes in tags.</label>
+            <default>true</default>
+        </entry>
+    </group>
+</kcfg>

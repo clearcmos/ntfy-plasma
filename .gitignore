@@ -1,0 +1,13 @@
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+
+# Build / packaging artifacts (if anyone runs kpackagetool6 --package later)
+*.plasmoid
+build/

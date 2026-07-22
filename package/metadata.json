@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "clear.cmos@outlook.com",
+                "Name": "clearcmos"
+            }
+        ],
+        "Category": "Online Services",
+        "Description": "Live ntfy.sh notification feed in your panel.",
+        "Icon": "network-wireless",
+        "Id": "io.github.clearcmos.ntfy",
+        "License": "MIT",
+        "Name": "ntfy Feed",
+        "Version": "0.1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-NotificationArea": "true",
+    "X-Plasma-NotificationAreaCategory": "ApplicationStatus"
+}
