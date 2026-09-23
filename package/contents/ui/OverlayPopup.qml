@@ -51,7 +51,7 @@ PlasmaCore.Dialog {
             id: stack
             width: dialog.panelWidth
             spacing: 10
-            move: Transition { NumberAnimation { property: "y"; duration: 160; easing.type: Easing.OutCubic } }
+            move: Transition { NumberAnimation { property: "y"; duration: 320; easing.type: Easing.OutCubic } }
 
             Repeater {
                 model: dialog.queue
@@ -72,14 +72,14 @@ PlasmaCore.Dialog {
                     opacity: 0
                     transformOrigin: Item.Top
                     Component.onCompleted: opacity = 1
-                    Behavior on opacity { enabled: !leave.running; NumberAnimation { duration: 140 } }
+                    Behavior on opacity { enabled: !leave.running; NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
                     Behavior on color { ColorAnimation { duration: 120 } }
 
                     ParallelAnimation {
                         id: leave
-                        NumberAnimation { target: card; property: "opacity"; to: 0; duration: 160; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: card; property: "scale"; to: 0.94; duration: 160; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: shift; property: "y"; to: -8; duration: 160; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: card; property: "opacity"; to: 0; duration: 320; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: card; property: "scale"; to: 0.94; duration: 320; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: shift; property: "y"; to: -8; duration: 320; easing.type: Easing.OutCubic }
                         onFinished: dialog.dismiss(card.index)
                     }
                     transform: Translate { id: shift }
