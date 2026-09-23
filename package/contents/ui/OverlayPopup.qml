@@ -51,7 +51,7 @@ PlasmaCore.Dialog {
             id: stack
             width: dialog.panelWidth
             spacing: 10
-            move: Transition { NumberAnimation { property: "y"; duration: 320; easing.type: Easing.OutCubic } }
+            move: Transition { NumberAnimation { property: "y"; duration: 400; easing.type: Easing.OutCubic } }
 
             Repeater {
                 model: dialog.queue
@@ -70,19 +70,29 @@ PlasmaCore.Dialog {
                     border.width: 1
                     border.color: urgent ? "#5c9ae6" : Qt.rgba(1, 1, 1, 0.10)
                     opacity: 0
+                    scale: 0.96
                     transformOrigin: Item.Top
-                    Component.onCompleted: opacity = 1
-                    Behavior on opacity { enabled: !leave.running; NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                    transform: Translate { id: shift; y: -10 }
                     Behavior on color { ColorAnimation { duration: 120 } }
+
+                    // Started a frame after creation so the window is mapped
+                    // and the whole fade is actually on screen.
+                    Timer { interval: 30; running: true; onTriggered: enter.start() }
+
+                    ParallelAnimation {
+                        id: enter
+                        NumberAnimation { target: card; property: "opacity"; to: 1; duration: 450; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: card; property: "scale"; to: 1; duration: 450; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: shift; property: "y"; to: 0; duration: 450; easing.type: Easing.OutCubic }
+                    }
 
                     ParallelAnimation {
                         id: leave
-                        NumberAnimation { target: card; property: "opacity"; to: 0; duration: 320; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: card; property: "scale"; to: 0.94; duration: 320; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: shift; property: "y"; to: -8; duration: 320; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: card; property: "opacity"; to: 0; duration: 400; easing.type: Easing.InOutCubic }
+                        NumberAnimation { target: card; property: "scale"; to: 0.94; duration: 400; easing.type: Easing.InOutCubic }
+                        NumberAnimation { target: shift; property: "y"; to: -10; duration: 400; easing.type: Easing.InOutCubic }
                         onFinished: dialog.dismiss(card.index)
                     }
-                    transform: Translate { id: shift }
 
                     ColumnLayout {
                         id: body
@@ -170,7 +180,7 @@ PlasmaCore.Dialog {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         enabled: !leave.running
-                        onClicked: leave.start()
+                        onClicked: { enter.stop(); leave.start() }
                     }
                 }
             }
