@@ -51,6 +51,7 @@ PlasmaCore.Dialog {
             id: stack
             width: dialog.panelWidth
             spacing: 10
+            move: Transition { NumberAnimation { property: "y"; duration: 160; easing.type: Easing.OutCubic } }
 
             Repeater {
                 model: dialog.queue
@@ -69,9 +70,19 @@ PlasmaCore.Dialog {
                     border.width: 1
                     border.color: urgent ? "#5c9ae6" : Qt.rgba(1, 1, 1, 0.10)
                     opacity: 0
+                    transformOrigin: Item.Top
                     Component.onCompleted: opacity = 1
-                    Behavior on opacity { NumberAnimation { duration: 140 } }
+                    Behavior on opacity { enabled: !leave.running; NumberAnimation { duration: 140 } }
                     Behavior on color { ColorAnimation { duration: 120 } }
+
+                    ParallelAnimation {
+                        id: leave
+                        NumberAnimation { target: card; property: "opacity"; to: 0; duration: 160; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: card; property: "scale"; to: 0.94; duration: 160; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: shift; property: "y"; to: -8; duration: 160; easing.type: Easing.OutCubic }
+                        onFinished: dialog.dismiss(card.index)
+                    }
+                    transform: Translate { id: shift }
 
                     ColumnLayout {
                         id: body
@@ -158,7 +169,8 @@ PlasmaCore.Dialog {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: dialog.dismiss(card.index)
+                        enabled: !leave.running
+                        onClicked: leave.start()
                     }
                 }
             }
