@@ -13,6 +13,9 @@ PlasmoidItem {
     property var messages: []
     property int unreadCount: 0
     property bool connected: false
+    // Only messages published after the widget loaded pop the overlay, so a
+    // plasmashell restart does not replay the whole backfill on screen.
+    readonly property double startedSec: Date.now() / 1000
 
     readonly property url iconSource: Qt.resolvedUrl("../icons/ntfy-tower.svg")
 
@@ -91,11 +94,17 @@ PlasmoidItem {
             while (next.length > max) next.shift()
             root.messages = next
             if (!root.expanded) root.unreadCount += 1
+            if (msg.time && msg.time >= root.startedSec) overlay.push(msg)
         }
 
         onOpenChanged: function(isOpen) {
             root.connected = isOpen
         }
+    }
+
+    OverlayPopup {
+        id: overlay
+        screenRect: Plasmoid.containment ? Plasmoid.containment.screenGeometry : Qt.rect(0, 0, 1920, 1080)
     }
 
     Component.onCompleted: if (isConfigured) client.start()
