@@ -6,7 +6,7 @@ KDE Plasma 6 widget for ntfy.sh: live notification feed in your panel.
 
 - Subscribe to one or more ntfy topics, see new messages live in a panel popup
 - Backfills history on connect/reconnect (`?since=...`)
-- Messages published while the widget is running also appear as an overlay at the top centre of the panel's screen, one card per message, until each is clicked. Each new card plays a short chime, and a glow pulses around the screen edges until the last card is dismissed
+- Messages published while the widget is running also appear as an overlay at the top centre of the panel's screen, one card per message, until each is clicked. Up to five cards show at once; a sixth drops the oldest. Each new card plays a short chime, and a glow pulses around the screen edges until the last card is dismissed
 - Auto-reconnect with capped exponential backoff
 - Compact panel icon with unread badge and disconnect indicator; middle-click it to mark everything read
 - Priority-coloured left border per message (info / warning / error)

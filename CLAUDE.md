@@ -31,7 +31,7 @@ The Qt 6 tools live in `/usr/lib/qt6/bin` (`QT_BIN` overrides it). The `qmllint`
 - `qmlformat` is the formatter, with its defaults and no column limit. It rewrites a few things badly, so write around them: multi-branch bindings as `{ if (...) return ...; }` blocks rather than nested ternaries; comments on their own line above an unbraced `if`; `String.fromCharCode` rather than `\u` escapes in string literals (it decodes escapes into literal characters).
 - No emoji or em dash characters in source; tests build them with `String.fromCodePoint` / `String.fromCharCode`.
 - Every module in `package/contents/ui/` needs `tests/tst_<name>*.qml`, and every script needs `tests/test_<name>.sh`; `tests/run.sh` enforces it. Exempt: `main.qml` (needs plasmashell) and `scripts/regen-emoji.sh` (network-bound; its output is reviewed as a diff and exercised by `tst_emoji.qml`).
-- Tests call `failOnWarning(/\.qml:\d+/)` in `init()`, so any QML runtime warning fails the suite. Test seams: `OverlayPopup.chimeEnabled`, `objectName: "card"` on overlay cards, `objectName: "textScaleCombo"`.
+- Tests call `failOnWarning(/\.qml:\d+/)` in `init()`, so any QML runtime warning fails the suite. Test seams: `OverlayPopup.chimeEnabled`, `objectName: "card-<msgId>"` on overlay cards, `objectName: "textScaleCombo"`.
 - A regression test carries a comment naming the bug it pins.
 - The author identity is the `clearcmos` handle and `clear.cmos@outlook.com`. No real names anywhere else, apart from third-party license notices.
 
@@ -52,4 +52,5 @@ The Qt 6 tools live in `/usr/lib/qt6/bin` (`QT_BIN` overrides it). The `qmllint`
 - 2026-09-23: The chime ships as WAV because `SoundEffect` only plays uncompressed audio. Upstream licenses it LGPL-3.0-or-later (per-file REUSE notice), not the LGPL-2.0-or-later Arch's package metadata states.
 - 2026-09-23: `NtfyClient` consumes only complete lines (`Feed.completeLines`). The old parser advanced past a line split across two reads, so both halves failed to parse and the message was lost; the live test showed Qt's XHR does deliver such splits. Pinned by `tst_ntfyclient.qml` and `tst_ntfyclient_live.qml`.
 - 2026-09-23: Lint runs through `scripts/lint-qml.sh` because Qt 6 qmllint exits 0 on warnings and cannot see Plasma's context-injected `i18n`. It reads qmllint's JSON report and allowlists only those names; `tests/test_lint_qml.sh` proves it rejects a bad file and fails when qmllint is missing.
+- 2026-09-23: The overlay's cards live in a `ListModel`. A JS array property made the Repeater rebuild every card on each push or dismiss, replaying the fade-in of cards already on screen. Pinned by `test_existingCardsSurviveQueueChanges`.
 - 2026-09-23: CI runs in an `archlinux:base` container because the Ubuntu runner images do not package the Plasma 6 QML modules the widget imports.

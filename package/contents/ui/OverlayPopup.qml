@@ -10,7 +10,11 @@ import "Emoji.js" as Emoji
 PlasmaCore.Dialog {
     id: dialog
 
-    property var queue: []
+    // A ListModel rather than a JS array property: reassigning the array made
+    // the Repeater rebuild every card, replaying the fade-in of cards already
+    // on screen. Each row holds the display text, computed once at push.
+    property alias cards: cardModel
+    readonly property int cardCount: cardModel.count
     property rect screenRect: Qt.rect(0, 0, 1920, 1080)
     readonly property int panelWidth: 560
     readonly property int topGap: 28
@@ -32,22 +36,30 @@ PlasmaCore.Dialog {
     function push(msg) {
         if (chimeEnabled)
             chime.play();
-        const next = queue.slice();
-        next.push(msg);
-        while (next.length > maxCards)
-            next.shift();
-        queue = next;
+        const tags = Emoji.renderTags(msg.tags || []);
+        const title = msg.title || msg.topic || "";
+        cardModel.append({
+            msgId: msg.id || "",
+            heading: tags ? tags + "  " + title : title,
+            topicName: msg.topic || "",
+            messageText: msg.message || "",
+            sentAt: msg.time || 0,
+            urgent: (msg.priority || 3) >= 4
+        });
+        while (cardModel.count > maxCards)
+            cardModel.remove(0);
         visible = true;
     }
 
     function dismiss(i) {
-        const next = queue.slice();
-        const gone = next.splice(i, 1)[0];
-        queue = next;
-        if (next.length === 0)
+        if (i < 0 || i >= cardModel.count)
+            return;
+        const id = cardModel.get(i).msgId;
+        cardModel.remove(i);
+        if (cardModel.count === 0)
             visible = false;
-        if (gone && gone.id)
-            dismissed(gone.id);
+        if (id)
+            dismissed(id);
     }
 
     // The Column only lays out once it sits in a shown window, and Plasma
@@ -64,6 +76,10 @@ PlasmaCore.Dialog {
             source: Qt.resolvedUrl("../sounds/power-plug.wav")
         }
 
+        ListModel {
+            id: cardModel
+        }
+
         Column {
             id: stack
             width: dialog.panelWidth
@@ -77,22 +93,26 @@ PlasmaCore.Dialog {
             }
 
             Repeater {
-                model: dialog.queue
+                model: cardModel
 
                 delegate: Rectangle {
                     id: card
-                    objectName: "card"
-                    required property var modelData
                     required property int index
-                    readonly property var msg: modelData
-                    readonly property bool urgent: (msg.priority || 3) >= 4
+                    required property string msgId
+                    required property string heading
+                    required property string topicName
+                    required property string messageText
+                    required property real sentAt
+                    required property bool urgent
+
+                    objectName: "card-" + msgId
 
                     width: dialog.panelWidth
                     height: body.implicitHeight + 44
                     radius: 17
                     color: area.containsMouse ? "#1c1c1f" : "#161618"
                     border.width: 1
-                    border.color: urgent ? "#5c9ae6" : Qt.rgba(1, 1, 1, 0.10)
+                    border.color: card.urgent ? "#5c9ae6" : Qt.rgba(1, 1, 1, 0.10)
                     opacity: 0
                     scale: 0.96
                     transformOrigin: Item.Top
@@ -181,11 +201,7 @@ PlasmaCore.Dialog {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: {
-                                    const e = Emoji.renderTags(card.msg.tags || []);
-                                    const t = card.msg.title || card.msg.topic || "";
-                                    return e ? e + "  " + t : t;
-                                }
+                                text: card.heading
                                 color: "#e6e6e6"
                                 font.family: "Hack"
                                 font.pixelSize: 18
@@ -194,16 +210,16 @@ PlasmaCore.Dialog {
                             }
 
                             Rectangle {
-                                implicitWidth: topic.implicitWidth + 22
-                                implicitHeight: topic.implicitHeight + 4
+                                implicitWidth: topicLabel.implicitWidth + 22
+                                implicitHeight: topicLabel.implicitHeight + 4
                                 radius: 7
                                 color: "#202024"
                                 border.width: 1
                                 border.color: Qt.rgba(1, 1, 1, 0.09)
                                 Text {
-                                    id: topic
+                                    id: topicLabel
                                     anchors.centerIn: parent
-                                    text: card.msg.topic || ""
+                                    text: card.topicName
                                     color: "#5c9ae6"
                                     font.family: "Hack"
                                     font.pixelSize: 14
@@ -219,7 +235,7 @@ PlasmaCore.Dialog {
 
                         Text {
                             Layout.fillWidth: true
-                            text: card.msg.message || ""
+                            text: card.messageText
                             color: "#e6e6e6"
                             font.family: "Hack"
                             font.pixelSize: 16
@@ -230,7 +246,7 @@ PlasmaCore.Dialog {
                         RowLayout {
                             Layout.fillWidth: true
                             Text {
-                                text: card.msg.time ? Qt.formatTime(new Date(card.msg.time * 1000), "h:mm AP") : ""
+                                text: card.sentAt ? Qt.formatTime(new Date(card.sentAt * 1000), "h:mm AP") : ""
                                 color: "#55555c"
                                 font.family: "Hack"
                                 font.pixelSize: 13

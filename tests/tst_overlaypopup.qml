@@ -41,9 +41,10 @@ TestCase {
     }
 
     function ids(o) {
-        return o.queue.map(function (m) {
-            return m.id;
-        });
+        const out = [];
+        for (let i = 0; i < o.cards.count; i++)
+            out.push(o.cards.get(i).msgId);
+        return out;
     }
 
     function test_pushShowsCard() {
@@ -74,10 +75,26 @@ TestCase {
         verify(!o.visible);
     }
 
+    // Regression: the queue was a JS array, so every push or dismiss rebuilt
+    // all cards and replayed the fade-in of the ones already on screen.
+    function test_existingCardsSurviveQueueChanges() {
+        const o = make();
+        o.push(msg("a"));
+        const a = findChild(o.mainItem, "card-a");
+        verify(a);
+        tryCompare(a, "opacity", 1, 2000);
+        o.push(msg("b"));
+        verify(findChild(o.mainItem, "card-a") === a, "same card after a push");
+        compare(a.opacity, 1, "no replayed fade-in after a push");
+        o.dismiss(1);
+        verify(findChild(o.mainItem, "card-a") === a, "same card after another is dismissed");
+        compare(a.opacity, 1, "no replayed fade-in after a dismiss");
+    }
+
     function test_clickDismissesAfterFade() {
         const o = make();
         o.push(msg("a"));
-        const card = findChild(o.mainItem, "card");
+        const card = findChild(o.mainItem, "card-a");
         verify(card);
         mouseClick(card);
         compare(ids(o), ["a"], "the card stays until its fade finishes");

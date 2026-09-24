@@ -104,7 +104,7 @@ PlasmoidItem {
     OverlayPopup {
         id: overlay
         screenRect: Plasmoid.containment ? Plasmoid.containment.screenGeometry : Qt.rect(0, 0, 1920, 1080)
-        onQueueChanged: if (queue.length === 0)
+        onCardCountChanged: if (cardCount === 0)
             edgeFlash.stop()
     }
 
