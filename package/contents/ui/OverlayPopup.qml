@@ -2,6 +2,7 @@
 // Styled after the hotkey-help / chatgpt-launcher panels in clearcmos/arch.
 import QtQuick
 import QtQuick.Layouts
+import QtMultimedia
 import org.kde.plasma.core as PlasmaCore
 import "Emoji.js" as Emoji
 
@@ -26,6 +27,7 @@ PlasmaCore.Dialog {
     y: screenRect.y + topGap
 
     function push(msg) {
+        chime.play()
         const next = queue.slice()
         next.push(msg)
         while (next.length > maxCards) next.shift()
@@ -46,6 +48,13 @@ PlasmaCore.Dialog {
     mainItem: Item {
         width: dialog.panelWidth
         height: Math.max(1, stack.height)
+
+        // Oxygen "power-plug" chime (oxygen-sounds, LGPL-2.0-or-later), as WAV
+        // because SoundEffect only plays uncompressed audio.
+        SoundEffect {
+            id: chime
+            source: Qt.resolvedUrl("../sounds/power-plug.wav")
+        }
 
         Column {
             id: stack

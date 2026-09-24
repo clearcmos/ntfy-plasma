@@ -94,7 +94,10 @@ PlasmoidItem {
             while (next.length > max) next.shift()
             root.messages = next
             if (!root.expanded) root.unreadCount += 1
-            if (msg.time && msg.time >= root.startedSec) overlay.push(msg)
+            if (msg.time && msg.time >= root.startedSec) {
+                overlay.push(msg)
+                edgeFlash.trigger()
+            }
         }
 
         onOpenChanged: function(isOpen) {
@@ -105,6 +108,12 @@ PlasmoidItem {
     OverlayPopup {
         id: overlay
         screenRect: Plasmoid.containment ? Plasmoid.containment.screenGeometry : Qt.rect(0, 0, 1920, 1080)
+        onQueueChanged: if (queue.length === 0) edgeFlash.stop()
+    }
+
+    EdgeFlash {
+        id: edgeFlash
+        screenRect: overlay.screenRect
     }
 
     Component.onCompleted: if (isConfigured) client.start()
