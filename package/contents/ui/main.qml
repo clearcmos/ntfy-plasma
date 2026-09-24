@@ -1,11 +1,13 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
-import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.kirigami as Kirigami
+import "Feed.js" as Feed
 
 PlasmoidItem {
     id: root
@@ -19,36 +21,36 @@ PlasmoidItem {
 
     readonly property url iconSource: Qt.resolvedUrl("../icons/ntfy-tower.svg")
 
-    readonly property bool isConfigured: {
-        const s = (Plasmoid.configuration.serverUrl || "").trim()
-        const t = (Plasmoid.configuration.topics || "").trim()
-        return s.length > 0 && t.length > 0
-    }
+    // Same test the client uses, so a topics field of only commas does not
+    // read as configured while the client refuses to connect.
+    readonly property bool isConfigured: Feed.streamUrl(Plasmoid.configuration.serverUrl, Plasmoid.configuration.topics, "") !== ""
 
     function openConfig() {
-        Plasmoid.internalAction("configure").trigger()
+        Plasmoid.internalAction("configure").trigger();
     }
 
     readonly property string topicSummary: {
-        const t = (Plasmoid.configuration.topics || "")
-            .split(",").map(function(x) { return x.trim() })
-            .filter(function(x) { return x.length > 0 })
-        if (t.length === 0) return i18n("(no topics)")
-        if (t.length === 1) return t[0]
-        return i18np("%1 topic", "%1 topics", t.length)
+        const t = Feed.parseTopics(Plasmoid.configuration.topics);
+        if (t.length === 0)
+            return i18n("(no topics)");
+        if (t.length === 1)
+            return t[0];
+        return i18np("%1 topic", "%1 topics", t.length);
     }
 
     Plasmoid.icon: iconSource
     Plasmoid.title: i18n("ntfy Feed")
 
     toolTipMainText: i18n("ntfy Feed")
-    toolTipSubText: !isConfigured
-        ? i18n("Click to set server and topics")
-        : connected
-            ? (unreadCount > 0
-                ? i18np("%1 unread on %2", "%1 unread on %2", unreadCount, topicSummary)
-                : i18n("Connected to %1", topicSummary))
-            : i18n("Disconnected from %1", topicSummary)
+    toolTipSubText: {
+        if (!isConfigured)
+            return i18n("Click to set server and topics");
+        if (!connected)
+            return i18n("Disconnected from %1", topicSummary);
+        if (unreadCount > 0)
+            return i18np("%1 unread on %2", "%1 unread on %2", unreadCount, topicSummary);
+        return i18n("Connected to %1", topicSummary);
+    }
 
     preferredRepresentation: compactRepresentation
 
@@ -58,19 +60,20 @@ PlasmoidItem {
         // Throttle manual reconnects. Each call aborts and reopens the
         // streaming XHR; faster than the abort actually closes server-side
         // makes ntfy see leaked subscribers and may trip its visitor limit.
-        const now = Date.now()
-        if (now - _lastReconnectMs < 2000) return
-        _lastReconnectMs = now
-        client.restart()
+        const now = Date.now();
+        if (now - _lastReconnectMs < 2000)
+            return;
+        _lastReconnectMs = now;
+        client.restart();
     }
 
     function clearMessages() {
-        messages = []
-        unreadCount = 0
+        messages = [];
+        unreadCount = 0;
     }
 
     function markAllRead() {
-        unreadCount = 0
+        unreadCount = 0;
     }
 
     NtfyClient {
@@ -79,36 +82,30 @@ PlasmoidItem {
         topics: Plasmoid.configuration.topics
         historySince: Plasmoid.configuration.historySince
 
-        onMessageReceived: function(msg) {
-            // ntfy assigns a unique id per message. Reconnects backfill
-            // history (since=1h), so dedupe by id rather than re-appending
-            // everything we already have.
-            if (msg.id) {
-                for (let i = 0; i < root.messages.length; i++) {
-                    if (root.messages[i].id === msg.id) return
-                }
-            }
-            const max = Plasmoid.configuration.maxMessages || 100
-            const next = root.messages.slice()
-            next.push(msg)
-            while (next.length > max) next.shift()
-            root.messages = next
-            if (!root.expanded) root.unreadCount += 1
+        onMessageReceived: function (msg) {
+            const next = Feed.appendMessage(root.messages, msg, Plasmoid.configuration.maxMessages || 100);
+            // null: a backfill replay of a message already shown
+            if (next === null)
+                return;
+            root.messages = next;
+            if (!root.expanded)
+                root.unreadCount += 1;
             if (msg.time && msg.time >= root.startedSec) {
-                overlay.push(msg)
-                edgeFlash.trigger()
+                overlay.push(msg);
+                edgeFlash.trigger();
             }
         }
 
-        onOpenChanged: function(isOpen) {
-            root.connected = isOpen
+        onOpenChanged: function (isOpen) {
+            root.connected = isOpen;
         }
     }
 
     OverlayPopup {
         id: overlay
         screenRect: Plasmoid.containment ? Plasmoid.containment.screenGeometry : Qt.rect(0, 0, 1920, 1080)
-        onQueueChanged: if (queue.length === 0) edgeFlash.stop()
+        onQueueChanged: if (queue.length === 0)
+            edgeFlash.stop()
     }
 
     EdgeFlash {
@@ -116,19 +113,31 @@ PlasmoidItem {
         screenRect: overlay.screenRect
     }
 
-    Component.onCompleted: if (isConfigured) client.start()
+    Component.onCompleted: if (isConfigured)
+        client.start()
 
     Connections {
         target: Plasmoid.configuration
-        function onServerUrlChanged() { if (root.isConfigured) client.restart(); else client.stop() }
-        function onTopicsChanged() {
-            // Topic set changed -- prior messages reference old topics. Drop
-            // them so the user isn't confused by stale entries.
-            root.messages = []
-            root.unreadCount = 0
-            if (root.isConfigured) client.restart(); else client.stop()
+        function onServerUrlChanged() {
+            if (root.isConfigured)
+                client.restart();
+            else
+                client.stop();
         }
-        function onHistorySinceChanged() { if (root.isConfigured) client.restart() }
+        function onTopicsChanged() {
+            // Topic set changed: prior messages reference old topics. Drop
+            // them so the user isn't confused by stale entries.
+            root.messages = [];
+            root.unreadCount = 0;
+            if (root.isConfigured)
+                client.restart();
+            else
+                client.stop();
+        }
+        function onHistorySinceChanged() {
+            if (root.isConfigured)
+                client.restart();
+        }
     }
 
     compactRepresentation: MouseArea {
@@ -138,12 +147,13 @@ PlasmoidItem {
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
-        onClicked: function(mouse) {
+        onClicked: function (mouse) {
             if (mouse.button === Qt.MiddleButton) {
-                root.markAllRead()
+                root.markAllRead();
             } else {
-                root.expanded = !root.expanded
-                if (root.expanded) root.markAllRead()
+                root.expanded = !root.expanded;
+                if (root.expanded)
+                    root.markAllRead();
             }
         }
 
@@ -179,7 +189,7 @@ PlasmoidItem {
             }
         }
 
-        // Status dot in the corner: orange = not configured, yellow = disconnected.
+        // Status dot in the corner while not configured or disconnected.
         // Hidden when fully connected so the icon is uncluttered.
         Rectangle {
             visible: !root.isConfigured || !root.connected
@@ -190,9 +200,7 @@ PlasmoidItem {
             implicitWidth: 8
             implicitHeight: 8
             radius: 4
-            color: !root.isConfigured
-                ? Kirigami.Theme.neutralTextColor
-                : Kirigami.Theme.neutralTextColor
+            color: Kirigami.Theme.neutralTextColor
             border.color: Kirigami.Theme.backgroundColor
             border.width: 1
         }
@@ -225,14 +233,14 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Label {
-                text: root.connected
-                    ? i18n("%1 messages", root.messages.length)
-                    : i18n("disconnected")
+                text: root.connected ? i18n("%1 messages", root.messages.length) : i18n("disconnected")
                 color: Kirigami.Theme.disabledTextColor
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
             }
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
 
             PlasmaComponents.ToolButton {
                 icon.name: "view-refresh"
@@ -279,11 +287,13 @@ PlasmoidItem {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 color: Kirigami.Theme.disabledTextColor
-                text: !root.isConfigured
-                    ? i18n("Set a server URL and topic to start receiving notifications.")
-                    : root.connected
-                        ? i18n("Waiting for messages on %1", root.topicSummary)
-                        : i18n("Not connected. Retrying…")
+                text: {
+                    if (!root.isConfigured)
+                        return i18n("Set a server URL and topic to start receiving notifications.");
+                    if (root.connected)
+                        return i18n("Waiting for messages on %1", root.topicSummary);
+                    return i18n("Not connected. Retrying…");
+                }
             }
 
             PlasmaComponents.Button {
@@ -314,8 +324,13 @@ PlasmoidItem {
                 boundsMovement: Flickable.StopAtBounds
 
                 delegate: MessageDelegate {
+                    required property var modelData
+                    required property int index
+
                     width: feed.width
                     msg: modelData
+                    // BottomToTop: the highest index is the row drawn at the top.
+                    isTopRow: index === feed.count - 1
                     textScale: Plasmoid.configuration.textScale || 1.0
                     showDivider: Plasmoid.configuration.showDividers
                     renderMarkdown: Plasmoid.configuration.renderMarkdown

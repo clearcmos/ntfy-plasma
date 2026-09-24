@@ -11,3 +11,6 @@
 # Build / packaging artifacts (if anyone runs kpackagetool6 --package later)
 *.plasmoid
 build/
+
+# Bytecode from `make lint` compiling tests/fake_ntfy.py
+__pycache__/

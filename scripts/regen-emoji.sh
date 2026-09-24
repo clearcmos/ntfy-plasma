@@ -3,7 +3,7 @@
 # Run this when a new ntfy release adds shortcodes you want to support.
 #
 # The upstream source is github.com/binwiederhier/ntfy at
-# scripts/emoji.json -- a copy of github/gemoji's emoji.json. Each entry has
+# scripts/emoji.json, a copy of github/gemoji's emoji.json. Each entry has
 # {emoji, aliases[]}; we flatten to a flat {alias: emoji} map.
 set -euo pipefail
 

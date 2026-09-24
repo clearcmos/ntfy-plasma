@@ -3,6 +3,7 @@
 // `since` query param when (re)connecting, then keeps the connection open.
 // Reconnects with capped exponential backoff on any error/close.
 import QtQuick
+import "Feed.js" as Feed
 
 Item {
     id: root
@@ -15,7 +16,8 @@ Item {
     signal openChanged(bool open)
 
     property var _xhr: null
-    property string _buffer: ""
+    // Offset into the current response just past the last consumed newline.
+    property int _consumed: 0
     property int _backoffMs: 1000
     readonly property int _backoffMaxMs: 30000
 
@@ -26,110 +28,100 @@ Item {
     }
 
     function start() {
-        stop()
-        _connect()
+        stop();
+        _connect();
     }
 
     function stop() {
-        reconnectTimer.stop()
+        reconnectTimer.stop();
         if (_xhr) {
-            try { _xhr.abort() } catch (e) {}
-            _xhr = null
+            try {
+                _xhr.abort();
+            } catch (e) {}
+            _xhr = null;
         }
-        _buffer = ""
-        openChanged(false)
+        _consumed = 0;
+        openChanged(false);
     }
 
     function restart() {
-        stop()
-        _backoffMs = 1000
-        _connect()
-    }
-
-    function _topicsClean() {
-        return topics.split(",").map(function(t) { return t.trim() })
-                     .filter(function(t) { return t.length > 0 }).join(",")
-    }
-
-    function _url() {
-        const t = _topicsClean()
-        // Trim and strip trailing slashes from the server URL. Users routinely
-        // paste with a trailing space or `/`, which silently breaks the XHR.
-        const s = (serverUrl || "").trim().replace(/\/+$/, "")
-        if (!s || !t) return ""
-        const sinceRaw = (historySince || "").trim()
-        const since = sinceRaw.length ? sinceRaw : "0"
-        // /json streams JSON Lines; ?since=<dur> backfills history first
-        return s + "/" + t + "/json?since=" + encodeURIComponent(since)
+        stop();
+        _backoffMs = 1000;
+        _connect();
     }
 
     function _connect() {
-        const url = _url()
-        if (!url) return
+        const url = Feed.streamUrl(serverUrl, topics, historySince);
+        if (!url)
+            return;
+        const xhr = new XMLHttpRequest();
+        _xhr = xhr;
+        _consumed = 0;
 
-        const xhr = new XMLHttpRequest()
-        _xhr = xhr
-        _buffer = ""
+        xhr.open("GET", url);
+        xhr.responseType = "text";
 
-        xhr.open("GET", url)
-        xhr.responseType = "text"
-
-        xhr.onreadystatechange = function() {
-            if (xhr !== root._xhr) return  // stale request, ignore
-
+        xhr.onreadystatechange = function () {
+            // stale request, ignore
+            if (xhr !== root._xhr)
+                return;
             if (xhr.readyState === XMLHttpRequest.HEADERS_RECEIVED) {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    root._backoffMs = 1000
-                    root.openChanged(true)
+                    root._backoffMs = 1000;
+                    root.openChanged(true);
                 }
             } else if (xhr.readyState === XMLHttpRequest.LOADING) {
-                root._drainBuffer(xhr.responseText)
+                root._drainBuffer(xhr.responseText);
             } else if (xhr.readyState === XMLHttpRequest.DONE) {
-                root._drainBuffer(xhr.responseText)
-                root.openChanged(false)
-                root._scheduleReconnect()
+                root._drainBuffer(xhr.responseText);
+                root.openChanged(false);
+                root._scheduleReconnect();
             }
-        }
+        };
 
         try {
-            xhr.send()
+            xhr.send();
         } catch (e) {
-            root._scheduleReconnect()
+            root._scheduleReconnect();
         }
     }
 
     function _drainBuffer(full) {
-        // responseText is the cumulative response. Slice off what we've
-        // already seen and split on newlines.
-        if (full.length <= _buffer.length) return
-        const chunk = full.substring(_buffer.length)
-        _buffer = full
+        // responseText is the cumulative response. Only complete lines are
+        // consumed, so a line split across two reads waits for its newline
+        // instead of failing to parse in both halves.
+        const chunk = Feed.completeLines(full, _consumed);
+        _consumed = chunk.next;
 
-        const lines = chunk.split("\n")
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim()
-            if (!line) continue
+        for (let i = 0; i < chunk.lines.length; i++) {
+            const line = chunk.lines[i].trim();
+            if (!line)
+                continue;
+            let obj;
             try {
-                const obj = JSON.parse(line)
-                if (obj && obj.event === "message") {
-                    messageReceived(obj)
-                }
-                // ignore "open" / "keepalive" events, they just keep the
-                // connection alive; presence already drives openChanged.
+                obj = JSON.parse(line);
             } catch (e) {
-                // partial line at the end of chunk -- ntfy sends complete
-                // JSON per line, so this is rare; swallow rather than spam.
+                // Not ntfy output (an HTML error page from a proxy, say);
+                // skip it rather than spam the log on every reconnect.
+                continue;
+            }
+            // "open" and "keepalive" events only keep the connection alive;
+            // HEADERS_RECEIVED already drives openChanged.
+            if (obj && obj.event === "message") {
+                messageReceived(obj);
             }
         }
     }
 
     function _scheduleReconnect() {
-        if (_xhr === null) return  // explicit stop, don't retry
-        _xhr = null
-        const delay = _backoffMs
-        _backoffMs = Math.min(_backoffMs * 2, _backoffMaxMs)
-        reconnectTimer.interval = delay
-        reconnectTimer.start()
+        // explicit stop, don't retry
+        if (_xhr === null)
+            return;
+        _xhr = null;
+        const delay = _backoffMs;
+        _backoffMs = Math.min(_backoffMs * 2, _backoffMaxMs);
+        reconnectTimer.interval = delay;
+        reconnectTimer.start();
     }
 
     Component.onDestruction: stop()

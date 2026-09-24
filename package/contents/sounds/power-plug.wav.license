@@ -1,0 +1,9 @@
+SPDX-FileCopyrightText: 2008 Nuno Filipe Povoa <npovoa@gmail.com>
+
+SPDX-License-Identifier: LGPL-3.0-or-later
+
+From the Oxygen sound theme (https://invent.kde.org/plasma/oxygen-sounds),
+sounds/oxygen/stereo/outcome-success.ogg, which the theme also installs as
+power-plug.ogg. Decoded unmodified to 16-bit 48 kHz stereo WAV because Qt's
+SoundEffect only plays uncompressed audio. The license text is in
+LGPL-3.0-or-later.txt next to this file.

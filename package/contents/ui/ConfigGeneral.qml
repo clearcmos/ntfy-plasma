@@ -63,15 +63,31 @@ Kirigami.FormLayout {
 
     QQC2.ComboBox {
         id: textScaleCombo
+        objectName: "textScaleCombo"
         Kirigami.FormData.label: i18n("Text size:")
         Layout.fillWidth: true
 
         readonly property var presets: [
-            { label: i18n("Compact"),      value: 0.90 },
-            { label: i18n("Default"),      value: 1.00 },
-            { label: i18n("Comfortable"),  value: 1.15 },
-            { label: i18n("Large"),        value: 1.30 },
-            { label: i18n("Largest"),      value: 1.50 }
+            {
+                label: i18n("Compact"),
+                value: 0.90
+            },
+            {
+                label: i18n("Default"),
+                value: 1.00
+            },
+            {
+                label: i18n("Comfortable"),
+                value: 1.15
+            },
+            {
+                label: i18n("Large"),
+                value: 1.30
+            },
+            {
+                label: i18n("Largest"),
+                value: 1.50
+            }
         ]
 
         textRole: "label"
@@ -82,20 +98,23 @@ Kirigami.FormLayout {
         // closest preset on first load so a hand-edited config still maps
         // somewhere sensible.
         Component.onCompleted: {
-            const v = textScale.value
-            let bestIdx = 1
-            let bestDiff = Math.abs(presets[1].value - v)
+            const v = textScale.value;
+            let bestIdx = 1;
+            let bestDiff = Math.abs(presets[1].value - v);
             for (let i = 0; i < presets.length; i++) {
-                const d = Math.abs(presets[i].value - v)
-                if (d < bestDiff) { bestDiff = d; bestIdx = i }
+                const d = Math.abs(presets[i].value - v);
+                if (d < bestDiff) {
+                    bestDiff = d;
+                    bestIdx = i;
+                }
             }
-            currentIndex = bestIdx
+            currentIndex = bestIdx;
         }
 
         onActivated: textScale.value = presets[currentIndex].value
     }
 
-    // Real numeric backing for cfg_textScale -- the ComboBox is a UI shell.
+    // Real numeric backing for cfg_textScale; the ComboBox is a UI shell.
     Item {
         visible: false
         QtObject {

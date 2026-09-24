@@ -1,5 +1,6 @@
 // Top-centre overlay for live messages. Stays until each card is clicked.
-// Styled after the hotkey-help / chatgpt-launcher panels in clearcmos/arch.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtMultimedia
@@ -14,6 +15,8 @@ PlasmaCore.Dialog {
     readonly property int panelWidth: 560
     readonly property int topGap: 28
     readonly property int maxCards: 5
+    // Off in the test suite so running it does not play the chime.
+    property bool chimeEnabled: true
 
     signal dismissed(string id)
 
@@ -27,20 +30,24 @@ PlasmaCore.Dialog {
     y: screenRect.y + topGap
 
     function push(msg) {
-        chime.play()
-        const next = queue.slice()
-        next.push(msg)
-        while (next.length > maxCards) next.shift()
-        queue = next
-        visible = true
+        if (chimeEnabled)
+            chime.play();
+        const next = queue.slice();
+        next.push(msg);
+        while (next.length > maxCards)
+            next.shift();
+        queue = next;
+        visible = true;
     }
 
     function dismiss(i) {
-        const next = queue.slice()
-        const gone = next.splice(i, 1)[0]
-        queue = next
-        if (next.length === 0) visible = false
-        if (gone && gone.id) dismissed(gone.id)
+        const next = queue.slice();
+        const gone = next.splice(i, 1)[0];
+        queue = next;
+        if (next.length === 0)
+            visible = false;
+        if (gone && gone.id)
+            dismissed(gone.id);
     }
 
     // The Column only lays out once it sits in a shown window, and Plasma
@@ -49,7 +56,8 @@ PlasmaCore.Dialog {
         width: dialog.panelWidth
         height: Math.max(1, stack.height)
 
-        // Oxygen "power-plug" chime (oxygen-sounds, LGPL-2.0-or-later), as WAV
+        // Oxygen "power-plug" chime (outcome-success.ogg from oxygen-sounds,
+        // LGPL-3.0-or-later, see ../sounds/power-plug.wav.license), as WAV
         // because SoundEffect only plays uncompressed audio.
         SoundEffect {
             id: chime
@@ -60,13 +68,20 @@ PlasmaCore.Dialog {
             id: stack
             width: dialog.panelWidth
             spacing: 10
-            move: Transition { NumberAnimation { property: "y"; duration: 400; easing.type: Easing.OutCubic } }
+            move: Transition {
+                NumberAnimation {
+                    property: "y"
+                    duration: 400
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             Repeater {
                 model: dialog.queue
 
                 delegate: Rectangle {
                     id: card
+                    objectName: "card"
                     required property var modelData
                     required property int index
                     readonly property var msg: modelData
@@ -81,25 +96,72 @@ PlasmaCore.Dialog {
                     opacity: 0
                     scale: 0.96
                     transformOrigin: Item.Top
-                    transform: Translate { id: shift; y: -10 }
-                    Behavior on color { ColorAnimation { duration: 120 } }
+                    transform: Translate {
+                        id: shift
+                        y: -10
+                    }
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 120
+                        }
+                    }
 
                     // Started a frame after creation so the window is mapped
                     // and the whole fade is actually on screen.
-                    Timer { interval: 30; running: true; onTriggered: enter.start() }
+                    Timer {
+                        interval: 30
+                        running: true
+                        onTriggered: enter.start()
+                    }
 
                     ParallelAnimation {
                         id: enter
-                        NumberAnimation { target: card; property: "opacity"; to: 1; duration: 450; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: card; property: "scale"; to: 1; duration: 450; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: shift; property: "y"; to: 0; duration: 450; easing.type: Easing.OutCubic }
+                        NumberAnimation {
+                            target: card
+                            property: "opacity"
+                            to: 1
+                            duration: 450
+                            easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: card
+                            property: "scale"
+                            to: 1
+                            duration: 450
+                            easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: shift
+                            property: "y"
+                            to: 0
+                            duration: 450
+                            easing.type: Easing.OutCubic
+                        }
                     }
 
                     ParallelAnimation {
                         id: leave
-                        NumberAnimation { target: card; property: "opacity"; to: 0; duration: 400; easing.type: Easing.InOutCubic }
-                        NumberAnimation { target: card; property: "scale"; to: 0.94; duration: 400; easing.type: Easing.InOutCubic }
-                        NumberAnimation { target: shift; property: "y"; to: -10; duration: 400; easing.type: Easing.InOutCubic }
+                        NumberAnimation {
+                            target: card
+                            property: "opacity"
+                            to: 0
+                            duration: 400
+                            easing.type: Easing.InOutCubic
+                        }
+                        NumberAnimation {
+                            target: card
+                            property: "scale"
+                            to: 0.94
+                            duration: 400
+                            easing.type: Easing.InOutCubic
+                        }
+                        NumberAnimation {
+                            target: shift
+                            property: "y"
+                            to: -10
+                            duration: 400
+                            easing.type: Easing.InOutCubic
+                        }
                         onFinished: dialog.dismiss(card.index)
                     }
 
@@ -120,9 +182,9 @@ PlasmaCore.Dialog {
                             Text {
                                 Layout.fillWidth: true
                                 text: {
-                                    const e = Emoji.renderTags(card.msg.tags || [])
-                                    const t = card.msg.title || card.msg.topic || ""
-                                    return e ? e + "  " + t : t
+                                    const e = Emoji.renderTags(card.msg.tags || []);
+                                    const t = card.msg.title || card.msg.topic || "";
+                                    return e ? e + "  " + t : t;
                                 }
                                 color: "#e6e6e6"
                                 font.family: "Hack"
@@ -173,7 +235,9 @@ PlasmaCore.Dialog {
                                 font.family: "Hack"
                                 font.pixelSize: 13
                             }
-                            Item { Layout.fillWidth: true }
+                            Item {
+                                Layout.fillWidth: true
+                            }
                             Text {
                                 text: "click to dismiss"
                                 color: "#55555c"
@@ -189,7 +253,10 @@ PlasmaCore.Dialog {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         enabled: !leave.running
-                        onClicked: { enter.stop(); leave.start() }
+                        onClicked: {
+                            enter.stop();
+                            leave.start();
+                        }
                     }
                 }
             }
