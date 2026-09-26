@@ -20,45 +20,20 @@ TestCase {
         failOnWarning(/\.qml:\d+/);
     }
 
-    function test_loadSelectsClosestPreset_data() {
-        return [
-            {
-                tag: "exact default",
-                scale: 1.0,
-                index: 1
-            },
-            {
-                tag: "hand-edited between presets",
-                scale: 1.28,
-                index: 3
-            },
-            {
-                tag: "config minimum",
-                scale: 0.7,
-                index: 0
-            },
-            {
-                tag: "config maximum",
-                scale: 1.6,
-                index: 4
-            }
-        ];
-    }
-
-    function test_loadSelectsClosestPreset(data) {
+    function test_loadsAndWritesBackEveryKey() {
         const page = createTemporaryObject(configComponent, tc, {
-            cfg_textScale: data.scale
+            cfg_serverUrl: "https://ntfy.sh",
+            cfg_topics: "a,b",
+            cfg_maxMessages: 50,
+            cfg_historySince: "12h",
+            cfg_showDividers: false,
+            cfg_renderMarkdown: false
         });
-        compare(findChild(page, "textScaleCombo").currentIndex, data.index);
-    }
-
-    function test_choosingPresetWritesScale() {
-        const page = createTemporaryObject(configComponent, tc, {
-            cfg_textScale: 1.0
-        });
-        const combo = findChild(page, "textScaleCombo");
-        combo.currentIndex = 4;
-        combo.activated(4);
-        compare(page.cfg_textScale, 1.5);
+        compare(page.cfg_serverUrl, "https://ntfy.sh");
+        compare(page.cfg_topics, "a,b");
+        compare(page.cfg_maxMessages, 50);
+        compare(page.cfg_historySince, "12h");
+        compare(page.cfg_showDividers, false);
+        compare(page.cfg_renderMarkdown, false);
     }
 }

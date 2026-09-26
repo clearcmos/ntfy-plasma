@@ -1,72 +1,103 @@
 import QtQuick
 import QtTest
-import org.kde.kirigami as Kirigami
 import "../package/contents/ui"
 
 TestCase {
     id: tc
     name: "MessageDelegate"
-    width: 400
+    width: 600
     height: 400
 
     Component {
         id: delegateComponent
         MessageDelegate {
-            width: 300
+            width: 530
         }
+    }
+
+    SignalSpy {
+        id: copiedSpy
+        signalName: "copied"
     }
 
     function init() {
         failOnWarning(/\.qml:\d+/);
     }
 
-    function make(msg) {
-        return createTemporaryObject(delegateComponent, tc, {
+    function make(msg, props) {
+        const d = createTemporaryObject(delegateComponent, tc, Object.assign({
             msg: msg
-        });
+        }, props || {}));
+        copiedSpy.clear();
+        copiedSpy.target = d;
+        return d;
     }
 
-    function test_priorityColor_data() {
+    function test_urgentAtHighPriority_data() {
         return [
             {
                 tag: "max",
                 priority: 5,
-                color: Kirigami.Theme.negativeTextColor
+                urgent: true
             },
             {
                 tag: "high",
                 priority: 4,
-                color: Kirigami.Theme.neutralTextColor
+                urgent: true
             },
             {
                 tag: "default",
                 priority: 3,
-                color: Kirigami.Theme.linkColor
-            },
-            {
-                tag: "low",
-                priority: 2,
-                color: Kirigami.Theme.disabledTextColor
+                urgent: false
             },
             {
                 tag: "min",
                 priority: 1,
-                color: Kirigami.Theme.disabledTextColor
+                urgent: false
             },
             {
                 tag: "missing",
                 priority: undefined,
-                color: Kirigami.Theme.linkColor
+                urgent: false
             }
         ];
     }
 
-    function test_priorityColor(data) {
+    function test_urgentAtHighPriority(data) {
         const d = make({
             message: "x",
             priority: data.priority
         });
-        verify(Qt.colorEqual(d.borderColor, data.color), "got " + d.borderColor + ", want " + data.color);
+        compare(d.urgent, data.urgent);
+        compare(d.border.width, data.urgent ? 1 : 0);
+    }
+
+    function test_highlightUsesSurfaceHover() {
+        const d = make({
+            message: "x"
+        }, {
+            highlighted: true
+        });
+        tryVerify(function () {
+            return Qt.colorEqual(d.color, "#25252a");
+        }, 1000);
+    }
+
+    function test_headingPrefixesRenderedTags() {
+        const d = make({
+            title: "Backup",
+            tags: ["nope-not-an-emoji"]
+        });
+        compare(d.heading, "#nope-not-an-emoji  Backup");
+        d.renderMarkdown = false;
+        compare(d.heading, "Backup");
+    }
+
+    function test_headingFallsBackToTopic() {
+        compare(make({
+            topic: "alerts",
+            message: "x"
+        }).heading, "alerts");
     }
 
     // Regression: a message with no tags or topic bound undefined to the
@@ -93,5 +124,13 @@ TestCase {
         compare(make({
             message: "just this"
         })._composeCopy(), "just this");
+    }
+
+    function test_copyEmitsCopied() {
+        const d = make({
+            message: "x"
+        });
+        d.copy();
+        compare(copiedSpy.count, 1);
     }
 }

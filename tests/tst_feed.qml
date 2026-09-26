@@ -157,4 +157,67 @@ TestCase {
             message: "x"
         }, 10).length, 2);
     }
+
+    function test_panelPosition_data() {
+        const screen = Qt.rect(0, 0, 1920, 1080);
+        return [
+            {
+                tag: "bottom panel, icon mid-screen",
+                edge: "bottom",
+                icon: Qt.rect(1000, 1050, 22, 22),
+                panel: Qt.rect(0, 1040, 1920, 40),
+                x: 1011 - 280,
+                y: 1040 - 10 - 300
+            },
+            {
+                tag: "bottom panel, icon at the right edge",
+                edge: "bottom",
+                icon: Qt.rect(1890, 1050, 22, 22),
+                panel: Qt.rect(0, 1040, 1920, 40),
+                x: 1920 - 10 - 560,
+                y: 730
+            },
+            {
+                tag: "top panel",
+                edge: "top",
+                icon: Qt.rect(1000, 8, 22, 22),
+                panel: Qt.rect(0, 0, 1920, 40),
+                x: 731,
+                y: 50
+            },
+            {
+                tag: "left panel",
+                edge: "left",
+                icon: Qt.rect(10, 500, 22, 22),
+                panel: Qt.rect(0, 0, 44, 1080),
+                x: 54,
+                y: 361
+            },
+            {
+                tag: "right panel, icon near the bottom",
+                edge: "right",
+                icon: Qt.rect(1886, 1040, 22, 22),
+                panel: Qt.rect(1876, 0, 44, 1080),
+                x: 1876 - 10 - 560,
+                y: 1080 - 10 - 300
+            },
+            {
+                tag: "no edge centres on screen",
+                edge: "",
+                icon: Qt.rect(0, 0, 0, 0),
+                panel: Qt.rect(0, 0, 0, 0),
+                x: 680,
+                y: 390
+            }
+        ].map(function (d) {
+            d.screen = screen;
+            return d;
+        });
+    }
+
+    function test_panelPosition(data) {
+        const p = Feed.panelPosition(data.edge, data.icon, data.panel, data.screen, 560, 300, 10);
+        compare(p.x, data.x, "x");
+        compare(p.y, data.y, "y");
+    }
 }

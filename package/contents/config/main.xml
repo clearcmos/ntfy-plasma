@@ -22,12 +22,6 @@
             <label>Backfill window on reconnect (e.g. 1h, 12h, all).</label>
             <default>1h</default>
         </entry>
-        <entry name="textScale" type="Double">
-            <label>Text size multiplier (1.0 = default).</label>
-            <default>1.0</default>
-            <min>0.7</min>
-            <max>1.6</max>
-        </entry>
         <entry name="showDividers" type="Bool">
             <label>Draw a thin separator line between messages.</label>
             <default>true</default>

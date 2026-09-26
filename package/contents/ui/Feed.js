@@ -34,6 +34,30 @@ function completeLines(text, from) {
     return { lines: text.substring(from, end).split("\n"), next: end + 1 };
 }
 
+// Top-left of a width x height card beside its panel icon: centred on the
+// icon along the panel, `gap` off the panel's inner edge, and kept `gap`
+// inside the screen. edge is the panel's screen edge: "top", "bottom",
+// "left" or "right"; anything else centres the card on the screen.
+function panelPosition(edge, icon, panel, screen, width, height, gap) {
+    function clamp(v, lo, hi) {
+        return Math.max(lo, Math.min(v, hi));
+    }
+    const x = clamp(Math.round(icon.x + icon.width / 2 - width / 2), screen.x + gap, screen.x + screen.width - gap - width);
+    const y = clamp(Math.round(icon.y + icon.height / 2 - height / 2), screen.y + gap, screen.y + screen.height - gap - height);
+    switch (edge) {
+    case "top":
+        return { x: x, y: panel.y + panel.height + gap };
+    case "bottom":
+        return { x: x, y: panel.y - gap - height };
+    case "left":
+        return { x: panel.x + panel.width + gap, y: y };
+    case "right":
+        return { x: panel.x - gap - width, y: y };
+    default:
+        return { x: screen.x + Math.round((screen.width - width) / 2), y: screen.y + Math.round((screen.height - height) / 2) };
+    }
+}
+
 // Append msg to a copy of list, dropping the oldest entries beyond max.
 // Returns null when a message with the same id is already present: ntfy
 // assigns a unique id per message, and reconnects backfill history the feed

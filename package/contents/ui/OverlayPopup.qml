@@ -27,6 +27,12 @@ PlasmaCore.Dialog {
     readonly property int maxCards: 5
     // Off in the test suite so running it does not play the chime.
     property bool chimeEnabled: true
+    // The height the window keeps for the cards. It grows with the stack but
+    // never shrinks while cards are on screen: resizing the visible window
+    // flickered every card for a frame on each dismissal. It resets once
+    // the last card is gone and the window is hidden. The cost is that the
+    // empty room below the remaining cards takes clicks until then.
+    property real frameHeight: 0
 
     signal dismissed(string id)
 
@@ -62,8 +68,12 @@ PlasmaCore.Dialog {
             return;
         const id = cardModel.get(i).msgId;
         cardModel.remove(i);
-        if (cardModel.count === 0)
+        // A hidden window does not lay the stack out again, so its height
+        // would never come down on its own.
+        if (cardModel.count === 0) {
             visible = false;
+            frameHeight = 0;
+        }
         if (id)
             dismissed(id);
     }
@@ -72,7 +82,7 @@ PlasmaCore.Dialog {
     // refuses to show a zero-size dialog, so the wrapper never reports 0.
     mainItem: Item {
         width: dialog.panelWidth + 2 * dialog.shadowSide
-        height: stack.height + dialog.shadowTop + dialog.shadowBottom
+        height: dialog.frameHeight + dialog.shadowTop + dialog.shadowBottom
 
         // Oxygen "power-plug" chime (outcome-success.ogg from oxygen-sounds,
         // LGPL-3.0-or-later, see ../sounds/power-plug.wav.license), as WAV
@@ -88,10 +98,13 @@ PlasmaCore.Dialog {
 
         Column {
             id: stack
+            objectName: "stack"
             x: dialog.shadowSide
             y: dialog.shadowTop
             width: dialog.panelWidth
             spacing: 10
+            onHeightChanged: if (height > dialog.frameHeight)
+                dialog.frameHeight = height
             move: Transition {
                 NumberAnimation {
                     property: "y"
@@ -117,13 +130,13 @@ PlasmaCore.Dialog {
 
                     width: dialog.panelWidth
                     height: body.implicitHeight + 44
+                    opacity: 0
+                    scale: 0.96
+                    transformOrigin: Item.Top
                     radius: 17
                     color: area.containsMouse ? "#25252a" : "#1f1f23"
                     border.width: 1
                     border.color: card.urgent ? "#5c9ae6" : Qt.rgba(1, 1, 1, 0.10)
-                    opacity: 0
-                    scale: 0.96
-                    transformOrigin: Item.Top
                     layer.enabled: true
                     layer.effect: MultiEffect {
                         shadowEnabled: true

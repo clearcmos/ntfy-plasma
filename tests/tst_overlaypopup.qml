@@ -101,4 +101,34 @@ TestCase {
         tryCompare(o, "visible", false, 3000);
         compare(dismissedSpy.count, 1);
     }
+
+    // Regression: the window shrank on every dismissal, and resizing the
+    // visible window flickered every remaining card for a frame. It now keeps
+    // its height until the last card is gone.
+    function test_windowKeepsItsHeightUntilTheLastCardGoes() {
+        const o = make();
+        o.push(msg("a"));
+        o.push(msg("b"));
+        o.push(msg("c"));
+        const stack = findChild(o.mainItem, "stack");
+        tryVerify(function () {
+            return stack.height > 0 && o.frameHeight === stack.height;
+        }, 2000);
+        const tall = o.frameHeight;
+        o.dismiss(0);
+        tryVerify(function () {
+            return stack.height < tall;
+        }, 1000, "the stack is shorter");
+        wait(700);
+        compare(o.frameHeight, tall, "no resize while cards are on screen, even after the reflow");
+        o.dismiss(0);
+        o.dismiss(0);
+        verify(!o.visible);
+        compare(o.frameHeight, 0, "resets once the last card is gone");
+        o.push(msg("d"));
+        tryVerify(function () {
+            return stack.height > 0 && o.frameHeight === stack.height;
+        }, 2000, "the next card gets a window of its own height");
+        verify(o.frameHeight < tall);
+    }
 }

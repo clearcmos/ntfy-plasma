@@ -1,170 +1,126 @@
+// One feed row on the Basalt panel: heading and time, body, topic chip.
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
-import org.kde.plasma.components as PlasmaComponents
-import org.kde.kirigami as Kirigami
 import "Emoji.js" as Emoji
 
 Rectangle {
     id: root
 
     property var msg
-    property real textScale: 1.0
     property bool showDivider: true
     property bool renderMarkdown: true
-    property bool isTopRow: false
-    property int priority: root.msg && root.msg.priority ? root.msg.priority : 3
+    property bool highlighted: false
+    readonly property bool urgent: (root.msg && root.msg.priority ? root.msg.priority : 3) >= 4
+    readonly property string heading: {
+        const title = root.msg.title || root.msg.topic || "";
+        const tags = root.renderMarkdown ? Emoji.renderTags(root.msg.tags || []) : "";
+        return tags ? tags + "  " + title : title;
+    }
+    // Row padding, so the text lines up with the panel header 29px in when
+    // the row itself is inset 14px from the card edge.
+    readonly property int inset: 15
 
-    readonly property color borderColor: {
-        switch (priority) {
-        case 5:
-            return Kirigami.Theme.negativeTextColor;
-        case 4:
-            return Kirigami.Theme.neutralTextColor;
-        case 1:
-        case 2:
-            return Kirigami.Theme.disabledTextColor;
-        default:
-            return Kirigami.Theme.linkColor;
+    signal copied
+    signal hovered(bool inside)
+
+    implicitHeight: layout.implicitHeight + 24
+    radius: 7
+    color: root.highlighted ? "#25252a" : "#1f1f23"
+    border.width: root.urgent ? 1 : 0
+    border.color: "#5c9ae6"
+    Behavior on color {
+        ColorAnimation {
+            duration: 120
         }
     }
 
-    readonly property real basePoint: Kirigami.Theme.defaultFont.pointSize
-    readonly property real smallPoint: Kirigami.Theme.smallFont.pointSize
-    readonly property real titlePoint: basePoint * textScale
-    readonly property real bodyPoint: smallPoint * textScale
-    readonly property real metaPoint: Math.max(smallPoint - 1, 7) * textScale
-
-    color: "transparent"
-    Layout.fillWidth: true
-    implicitHeight: layout.implicitHeight + Kirigami.Units.smallSpacing * 2
-
-    // Hairline divider above each row. Hidden on the topmost-displayed row so
-    // it does not double up against the toolbar separator.
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
+        anchors.leftMargin: root.inset
+        anchors.rightMargin: root.inset
         height: 1
-        color: Kirigami.Theme.textColor
-        opacity: 0.08
-        visible: root.showDivider && !root.isTopRow
-    }
-
-    // Subtle hover wash, fades in/out.
-    Rectangle {
-        id: hoverWash
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: 4
-        color: Kirigami.Theme.textColor
-        opacity: hoverArea.containsMouse ? 0.06 : 0
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 140
-                easing.type: Easing.OutQuad
-            }
-        }
-    }
-
-    // Brief flash after a successful copy.
-    Rectangle {
-        id: copyFlash
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: 4
-        color: Kirigami.Theme.positiveTextColor
-        opacity: 0
-
-        SequentialAnimation {
-            id: flashAnim
-            NumberAnimation {
-                target: copyFlash
-                property: "opacity"
-                to: 0.18
-                duration: 100
-            }
-            PauseAnimation {
-                duration: 80
-            }
-            NumberAnimation {
-                target: copyFlash
-                property: "opacity"
-                to: 0
-                duration: 220
-            }
-        }
-    }
-
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 3
-        color: root.borderColor
-        radius: 2
+        color: Qt.rgba(1, 1, 1, 0.08)
+        visible: root.showDivider && !root.highlighted
     }
 
     ColumnLayout {
         id: layout
-        anchors.fill: parent
-        anchors.leftMargin: Kirigami.Units.smallSpacing + 8
-        anchors.rightMargin: Kirigami.Units.smallSpacing
-        anchors.topMargin: Kirigami.Units.smallSpacing
-        anchors.bottomMargin: Kirigami.Units.smallSpacing
-        spacing: 2
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 12
+        anchors.leftMargin: root.inset
+        anchors.rightMargin: root.inset
+        spacing: 6
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+            spacing: 14
 
-            PlasmaComponents.Label {
+            Text {
                 Layout.fillWidth: true
-                text: (root.msg.title && root.msg.title.length) ? root.msg.title : (root.msg.topic || "")
-                font.bold: true
-                font.pointSize: root.titlePoint
+                text: root.heading
+                color: "#e6e6e6"
+                font.family: "Hack"
+                font.pixelSize: 16
                 elide: Text.ElideRight
             }
 
-            PlasmaComponents.Label {
-                text: Qt.formatDateTime(new Date((root.msg.time || 0) * 1000), "hh:mm")
-                color: Kirigami.Theme.disabledTextColor
-                font.pointSize: root.metaPoint
+            Text {
+                text: root.msg.time ? Qt.formatTime(new Date(root.msg.time * 1000), "h:mm AP") : ""
+                color: "#86868d"
+                font.family: "Hack"
+                font.pixelSize: 13
             }
         }
 
-        PlasmaComponents.Label {
+        Text {
             Layout.fillWidth: true
+            visible: text.length > 0
             text: root.msg.message || ""
             textFormat: root.renderMarkdown ? Text.MarkdownText : Text.PlainText
-            wrapMode: Text.WordWrap
+            color: "#a0a0a0"
+            linkColor: "#5c9ae6"
+            font.family: "Hack"
+            font.pixelSize: 16
+            wrapMode: Text.Wrap
             maximumLineCount: 8
             elide: Text.ElideRight
-            font.pointSize: root.bodyPoint
-            onLinkActivated: function (url) {
-                Qt.openUrlExternally(url);
-            }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            visible: !!((root.msg.tags && root.msg.tags.length > 0) || (root.msg.topic && root.msg.topic.length > 0))
-            spacing: Kirigami.Units.smallSpacing
+            visible: !!root.msg.topic || (!root.renderMarkdown && !!(root.msg.tags && root.msg.tags.length))
+            spacing: 14
 
-            PlasmaComponents.Label {
+            Rectangle {
                 visible: !!root.msg.topic
-                text: "#" + (root.msg.topic || "")
-                color: Kirigami.Theme.disabledTextColor
-                font.pointSize: root.metaPoint
+                implicitWidth: topicLabel.implicitWidth + 22
+                implicitHeight: topicLabel.implicitHeight + 4
+                radius: 7
+                color: "#29292f"
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.09)
+                Text {
+                    id: topicLabel
+                    anchors.centerIn: parent
+                    text: root.msg.topic || ""
+                    color: "#5c9ae6"
+                    font.family: "Hack"
+                    font.pixelSize: 14
+                }
             }
 
-            PlasmaComponents.Label {
-                visible: !!(root.msg.tags && root.msg.tags.length > 0)
-                text: root.renderMarkdown ? Emoji.renderTags(root.msg.tags || []) : (root.msg.tags ? root.msg.tags.join(", ") : "")
-                color: Kirigami.Theme.disabledTextColor
-                font.pointSize: root.metaPoint
-                elide: Text.ElideRight
+            Text {
                 Layout.fillWidth: true
+                visible: !root.renderMarkdown && !!(root.msg.tags && root.msg.tags.length)
+                text: root.msg.tags ? root.msg.tags.join(", ") : ""
+                color: "#86868d"
+                font.family: "Hack"
+                font.pixelSize: 13
+                elide: Text.ElideRight
             }
         }
     }
@@ -189,26 +145,65 @@ Rectangle {
         if (root.msg.tags && root.msg.tags.length)
             meta.push(root.msg.tags.join(", "));
         if (meta.length)
-            lines.push("— " + meta.join(" · "));
+            lines.push(String.fromCharCode(0x2014) + " " + meta.join(" " + String.fromCharCode(0xb7) + " "));
         return lines.join("\n\n");
     }
 
+    // Clear-all motion: after `delay` ms the row slides right and fades with
+    // card-out's duration and easing, so a cleared feed reads as swiped away.
+    function swipeAway(delay) {
+        swipeDelay.duration = delay;
+        swipe.start();
+    }
+
+    transform: Translate {
+        id: slide
+    }
+
+    SequentialAnimation {
+        id: swipe
+        PauseAnimation {
+            id: swipeDelay
+        }
+        ParallelAnimation {
+            NumberAnimation {
+                target: root
+                property: "opacity"
+                to: 0
+                duration: 400
+                easing.type: Easing.InOutCubic
+            }
+            NumberAnimation {
+                target: slide
+                property: "x"
+                to: root.width / 3
+                duration: 400
+                easing.type: Easing.InOutCubic
+            }
+        }
+    }
+
+    function copy() {
+        clipboardHelper.text = root._composeCopy();
+        clipboardHelper.selectAll();
+        clipboardHelper.copy();
+        root.copied();
+    }
+
     MouseArea {
-        id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        onEntered: root.hovered(true)
+        onExited: root.hovered(false)
 
         onClicked: function (mouse) {
             if (mouse.button === Qt.MiddleButton && root.msg.click && root.msg.click.length) {
                 Qt.openUrlExternally(root.msg.click);
                 return;
             }
-            clipboardHelper.text = root._composeCopy();
-            clipboardHelper.selectAll();
-            clipboardHelper.copy();
-            flashAnim.restart();
+            root.copy();
         }
     }
 }

@@ -1,11 +1,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls as QQC2
-import QtQuick.Layouts
+import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
-import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.extras as PlasmaExtras
 import org.kde.kirigami as Kirigami
 import "Feed.js" as Feed
 
@@ -88,7 +85,7 @@ PlasmoidItem {
             if (next === null)
                 return;
             root.messages = next;
-            if (!root.expanded)
+            if (!panel.shown)
                 root.unreadCount += 1;
             if (msg.time && msg.time >= root.startedSec) {
                 overlay.push(msg);
@@ -111,6 +108,49 @@ PlasmoidItem {
     EdgeFlash {
         id: edgeFlash
         screenRect: overlay.screenRect
+    }
+
+    // The popup is a Basalt panel of its own, so Plasma's themed applet
+    // popup never opens.
+    FeedPanel {
+        id: panel
+        messages: root.messages
+        connected: root.connected
+        configured: root.isConfigured
+        topicSummary: root.topicSummary
+        showDividers: Plasmoid.configuration.showDividers
+        renderMarkdown: Plasmoid.configuration.renderMarkdown
+        edge: Plasmoid.location
+        screenRect: overlay.screenRect
+        onShownChanged: if (shown)
+            root.markAllRead()
+        onReconnectRequested: root.reconnect()
+        onClearRequested: root.clearMessages()
+        onConfigureRequested: root.openConfig()
+    }
+
+    Plasmoid.contextualActions: [
+        PlasmaCore.Action {
+            text: i18n("Reconnect")
+            icon.name: "view-refresh"
+            onTriggered: root.reconnect()
+        },
+        PlasmaCore.Action {
+            text: i18n("Clear Feed")
+            icon.name: "edit-clear-all"
+            enabled: root.messages.length > 0
+            onTriggered: root.clearMessages()
+        }
+    ]
+
+    // Plasma creates no compact icon for a widget without a full
+    // representation, so it gets an empty one that is never shown: anything
+    // that expands the widget (its global shortcut, a system tray click)
+    // opens the Basalt panel instead.
+    fullRepresentation: Item {}
+    onExpandedChanged: if (expanded) {
+        expanded = false;
+        panel.toggle();
     }
 
     Component.onCompleted: if (isConfigured)
@@ -141,6 +181,7 @@ PlasmoidItem {
     }
 
     compactRepresentation: MouseArea {
+        id: compact
         implicitWidth: Kirigami.Units.iconSizes.medium
         implicitHeight: Kirigami.Units.iconSizes.medium
 
@@ -151,11 +192,11 @@ PlasmoidItem {
             if (mouse.button === Qt.MiddleButton) {
                 root.markAllRead();
             } else {
-                root.expanded = !root.expanded;
-                if (root.expanded)
-                    root.markAllRead();
+                panel.toggle();
             }
         }
+
+        Component.onCompleted: panel.anchorItem = compact
 
         Kirigami.Icon {
             anchors.fill: parent
@@ -175,7 +216,7 @@ PlasmoidItem {
             implicitWidth: Math.max(badgeText.implicitWidth + 6, height)
             implicitHeight: Math.max(Kirigami.Units.iconSizes.small * 0.7, 14)
             radius: height / 2
-            color: Kirigami.Theme.negativeTextColor
+            color: "#5c9ae6"
             border.color: Kirigami.Theme.backgroundColor
             border.width: 1
 
@@ -183,7 +224,7 @@ PlasmoidItem {
                 id: badgeText
                 anchors.centerIn: parent
                 text: root.unreadCount > 99 ? "99+" : String(root.unreadCount)
-                color: "white"
+                color: "#1f1f23"
                 font.pointSize: Kirigami.Theme.smallFont.pointSize - 1
                 font.bold: true
             }
@@ -203,139 +244,6 @@ PlasmoidItem {
             color: Kirigami.Theme.neutralTextColor
             border.color: Kirigami.Theme.backgroundColor
             border.width: 1
-        }
-    }
-
-    fullRepresentation: ColumnLayout {
-        Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-        Layout.preferredHeight: Kirigami.Units.gridUnit * 22
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 18
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 14
-
-        spacing: Kirigami.Units.smallSpacing
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.margins: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
-
-            PlasmaExtras.Heading {
-                level: 4
-                text: i18n("ntfy")
-            }
-
-            Rectangle {
-                visible: !root.connected
-                implicitWidth: 8
-                implicitHeight: 8
-                radius: 4
-                color: Kirigami.Theme.neutralTextColor
-            }
-
-            PlasmaComponents.Label {
-                text: root.connected ? i18n("%1 messages", root.messages.length) : i18n("disconnected")
-                color: Kirigami.Theme.disabledTextColor
-                font.pointSize: Kirigami.Theme.smallFont.pointSize
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            PlasmaComponents.ToolButton {
-                icon.name: "view-refresh"
-                display: QQC2.AbstractButton.IconOnly
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: i18n("Reconnect")
-                onClicked: root.reconnect()
-            }
-
-            PlasmaComponents.ToolButton {
-                icon.name: "edit-clear-all"
-                display: QQC2.AbstractButton.IconOnly
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: i18n("Clear feed")
-                enabled: root.messages.length > 0
-                onClicked: root.clearMessages()
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Kirigami.Theme.disabledTextColor
-            opacity: 0.2
-        }
-
-        ColumnLayout {
-            Layout.alignment: Qt.AlignCenter
-            Layout.topMargin: Kirigami.Units.gridUnit * 2
-            Layout.fillWidth: true
-            visible: root.messages.length === 0
-            spacing: Kirigami.Units.largeSpacing
-
-            PlasmaExtras.Heading {
-                Layout.alignment: Qt.AlignHCenter
-                level: 3
-                visible: !root.isConfigured
-                text: i18n("Welcome to ntfy Feed")
-            }
-
-            PlasmaComponents.Label {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                color: Kirigami.Theme.disabledTextColor
-                text: {
-                    if (!root.isConfigured)
-                        return i18n("Set a server URL and topic to start receiving notifications.");
-                    if (root.connected)
-                        return i18n("Waiting for messages on %1", root.topicSummary);
-                    return i18n("Not connected. Retrying…");
-                }
-            }
-
-            PlasmaComponents.Button {
-                Layout.alignment: Qt.AlignHCenter
-                visible: !root.isConfigured
-                text: i18n("Configure")
-                icon.name: "configure"
-                onClicked: root.openConfig()
-            }
-        }
-
-        QQC2.ScrollView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
-            visible: root.messages.length > 0
-
-            ListView {
-                id: feed
-                model: root.messages
-                spacing: Kirigami.Units.smallSpacing
-                verticalLayoutDirection: ListView.BottomToTop
-                // boundsBehavior alone allows residual overshoot when wrapped
-                // in ScrollView; pairing it with boundsMovement prevents the
-                // user from dragging or flicking past the content edges at
-                // all. Both required.
-                boundsBehavior: Flickable.StopAtBounds
-                boundsMovement: Flickable.StopAtBounds
-
-                delegate: MessageDelegate {
-                    required property var modelData
-                    required property int index
-
-                    width: feed.width
-                    msg: modelData
-                    // BottomToTop: the highest index is the row drawn at the top.
-                    isTopRow: index === feed.count - 1
-                    textScale: Plasmoid.configuration.textScale || 1.0
-                    showDivider: Plasmoid.configuration.showDividers
-                    renderMarkdown: Plasmoid.configuration.renderMarkdown
-                }
-            }
         }
     }
 }
