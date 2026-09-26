@@ -2,6 +2,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtMultimedia
 import org.kde.plasma.core as PlasmaCore
@@ -18,6 +19,11 @@ PlasmaCore.Dialog {
     property rect screenRect: Qt.rect(0, 0, 1920, 1080)
     readonly property int panelWidth: 560
     readonly property int topGap: 28
+    // Basalt shadow-space: transparent room around the cards so their
+    // shadow is not clipped. topGap is measured to the card, not the window.
+    readonly property int shadowSide: 30
+    readonly property int shadowTop: 20
+    readonly property int shadowBottom: 40
     readonly property int maxCards: 5
     // Off in the test suite so running it does not play the chime.
     property bool chimeEnabled: true
@@ -30,8 +36,8 @@ PlasmaCore.Dialog {
     flags: Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus
     hideOnWindowDeactivate: false
 
-    x: screenRect.x + Math.round((screenRect.width - panelWidth) / 2)
-    y: screenRect.y + topGap
+    x: screenRect.x + Math.round((screenRect.width - panelWidth) / 2) - shadowSide
+    y: screenRect.y + topGap - shadowTop
 
     function push(msg) {
         if (chimeEnabled)
@@ -65,8 +71,8 @@ PlasmaCore.Dialog {
     // The Column only lays out once it sits in a shown window, and Plasma
     // refuses to show a zero-size dialog, so the wrapper never reports 0.
     mainItem: Item {
-        width: dialog.panelWidth
-        height: Math.max(1, stack.height)
+        width: dialog.panelWidth + 2 * dialog.shadowSide
+        height: stack.height + dialog.shadowTop + dialog.shadowBottom
 
         // Oxygen "power-plug" chime (outcome-success.ogg from oxygen-sounds,
         // LGPL-3.0-or-later, see ../sounds/power-plug.wav.license), as WAV
@@ -82,6 +88,8 @@ PlasmaCore.Dialog {
 
         Column {
             id: stack
+            x: dialog.shadowSide
+            y: dialog.shadowTop
             width: dialog.panelWidth
             spacing: 10
             move: Transition {
@@ -116,6 +124,14 @@ PlasmaCore.Dialog {
                     opacity: 0
                     scale: 0.96
                     transformOrigin: Item.Top
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: Qt.rgba(0, 0, 0, 0.55)
+                        shadowVerticalOffset: 10
+                        shadowBlur: 1.0
+                        blurMax: 30
+                    }
                     transform: Translate {
                         id: shift
                         y: -10
@@ -247,7 +263,7 @@ PlasmaCore.Dialog {
                             Layout.fillWidth: true
                             Text {
                                 text: card.sentAt ? Qt.formatTime(new Date(card.sentAt * 1000), "h:mm AP") : ""
-                                color: "#55555c"
+                                color: "#7f7f86"
                                 font.family: "Hack"
                                 font.pixelSize: 13
                             }
@@ -256,7 +272,7 @@ PlasmaCore.Dialog {
                             }
                             Text {
                                 text: "click to dismiss"
-                                color: "#55555c"
+                                color: "#7f7f86"
                                 font.family: "Hack"
                                 font.pixelSize: 13
                             }
