@@ -118,7 +118,7 @@ PlasmaCore.Dialog {
                     width: dialog.panelWidth
                     height: body.implicitHeight + 44
                     radius: 17
-                    color: area.containsMouse ? "#1c1c1f" : "#161618"
+                    color: area.containsMouse ? "#25252a" : "#1f1f23"
                     border.width: 1
                     border.color: card.urgent ? "#5c9ae6" : Qt.rgba(1, 1, 1, 0.10)
                     opacity: 0
@@ -229,7 +229,7 @@ PlasmaCore.Dialog {
                                 implicitWidth: topicLabel.implicitWidth + 22
                                 implicitHeight: topicLabel.implicitHeight + 4
                                 radius: 7
-                                color: "#202024"
+                                color: "#29292f"
                                 border.width: 1
                                 border.color: Qt.rgba(1, 1, 1, 0.09)
                                 Text {
@@ -263,7 +263,7 @@ PlasmaCore.Dialog {
                             Layout.fillWidth: true
                             Text {
                                 text: card.sentAt ? Qt.formatTime(new Date(card.sentAt * 1000), "h:mm AP") : ""
-                                color: "#7f7f86"
+                                color: "#86868d"
                                 font.family: "Hack"
                                 font.pixelSize: 13
                             }
@@ -272,7 +272,7 @@ PlasmaCore.Dialog {
                             }
                             Text {
                                 text: "click to dismiss"
-                                color: "#7f7f86"
+                                color: "#86868d"
                                 font.family: "Hack"
                                 font.pixelSize: 13
                             }
