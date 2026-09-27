@@ -2,6 +2,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "Emoji.js" as Emoji
+import "Feed.js" as Feed
 
 Rectangle {
     id: root
@@ -69,7 +70,7 @@ Rectangle {
             }
 
             Text {
-                text: root.msg.time ? Qt.formatTime(new Date(root.msg.time * 1000), "h:mm AP") : ""
+                text: Feed.stamp(root.msg.time)
                 color: "#86868d"
                 font.family: "Hack"
                 font.pixelSize: 13

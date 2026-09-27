@@ -75,3 +75,12 @@ function appendMessage(list, msg, max) {
         next.shift();
     return next;
 }
+
+// Date and time a message arrived, from ntfy's unix-seconds `time`, or ""
+// when it is missing. The feed holds backfill from past days, so a bare
+// clock time cannot say when a row came in.
+function stamp(sec) {
+    if (!sec)
+        return "";
+    return Qt.formatDateTime(new Date(sec * 1000), "ddd MMM d, h:mm AP");
+}

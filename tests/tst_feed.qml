@@ -220,4 +220,12 @@ TestCase {
         compare(p.x, data.x, "x");
         compare(p.y, data.y, "y");
     }
+
+    // Regression: feed rows showed only a clock time, so a backfilled
+    // message from an earlier day read as if it had just arrived.
+    function test_stampIncludesTheDate() {
+        const sec = new Date(2026, 8, 27, 15, 42).getTime() / 1000;
+        compare(Feed.stamp(sec), "Sun Sep 27, 3:42 PM");
+        compare(Feed.stamp(undefined), "");
+    }
 }
