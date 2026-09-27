@@ -274,7 +274,7 @@ TestCase {
         waitForRendering(p.mainItem);
         mouseClick(list.itemAtIndex(1), 20, 20);
         tryCompare(dismissSpy, "count", 1, 2000);
-        // Rows are newest first, so the second row is m1.
+        // The middle of three rows is m1 in either order.
         compare(dismissSpy.signalArguments[0][0], "m1");
         verify(p.shown);
     }

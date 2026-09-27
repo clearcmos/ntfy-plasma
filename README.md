@@ -46,7 +46,7 @@ package/
     ui/
       main.qml                  PlasmoidItem root and panel icon
       NtfyClient.qml            XHR-based JSON Lines streamer w/ reconnect
-      Feed.js                   URL building, line splitting, feed dedupe
+      Feed.js                   URL building, line splitting, feed dedupe, timestamps
       FeedPanel.qml             feed panel beside the icon
       MessageDelegate.qml       single-message row
       OverlayPopup.qml          top-centre cards for live messages
@@ -74,6 +74,7 @@ The feed panel, the message cards, and the edge glow follow Basalt, a fixed dark
 
 - KDE Plasma 6.0+
 - Kirigami, libplasma, qt6-declarative, qt6-multimedia (already on a typical Plasma 6 system)
+- The Hack font (`ttf-hack` on Arch); without it the text falls back to a wider font and overflows the cards
 - Network access to your ntfy server from the desktop
 
 No native code, no D-Bus, no shell calls.
@@ -98,7 +99,7 @@ Early. Single user, single ntfy instance tested. Known gaps:
 
 - No bearer-token auth header (yet) - public/anonymous topics only
 - No desktop notifications via `org.freedesktop.Notifications`; live messages use the widget's own overlay
-- Messages live in memory; panel restart empties the list (history backfills via `?since=` on reconnect)
+- Messages live in memory; panel restart empties the list (history backfills via `?since=` on reconnect). Dismissed or cleared messages inside that backfill window come back after a reconnect or restart
 
 ## License
 
