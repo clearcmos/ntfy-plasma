@@ -26,6 +26,9 @@ PlasmaCore.Dialog {
     readonly property int shadowTop: 20
     readonly property int shadowBottom: 40
     readonly property int maxCards: 5
+    // Cards pushed off the top by newer ones, oldest first. Each comes back
+    // as a card is dismissed, so no alert disappears unseen.
+    property var held: []
     // Off in the test suite so running it does not play the chime.
     property bool chimeEnabled: true
     // The clock the card timestamps are relative to, so a card left up
@@ -62,8 +65,18 @@ PlasmaCore.Dialog {
             sentAt: msg.time || 0,
             urgent: (msg.priority || 3) >= 4
         });
-        while (cardModel.count > maxCards)
+        while (cardModel.count > maxCards) {
+            const c = cardModel.get(0);
+            dialog.held.push({
+                msgId: c.msgId,
+                heading: c.heading,
+                topicName: c.topicName,
+                messageText: c.messageText,
+                sentAt: c.sentAt,
+                urgent: c.urgent
+            });
             cardModel.remove(0);
+        }
         visible = true;
     }
 
@@ -72,6 +85,10 @@ PlasmaCore.Dialog {
             return;
         const id = cardModel.get(i).msgId;
         cardModel.remove(i);
+        // The newest held card is older than every card on screen, so it
+        // returns at the top.
+        if (dialog.held.length > 0)
+            cardModel.insert(0, dialog.held.pop());
         // A hidden window does not lay the stack out again, so its height
         // would never come down on its own. Lay it out before hiding, or it
         // keeps the last card's height and a next card of the same height

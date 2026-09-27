@@ -63,6 +63,26 @@ TestCase {
         compare(ids(o), ["c", "d", "e", "f", "g"]);
     }
 
+    // Regression: a sixth card dropped the oldest for good, so with ten
+    // alerts the first five were never shown again.
+    function test_heldCardsComeBackAsOthersGo() {
+        const o = make();
+        ["a", "b", "c", "d", "e", "f", "g"].forEach(function (id) {
+            o.push(tc.msg(id));
+        });
+        o.dismiss(4);
+        compare(ids(o), ["b", "c", "d", "e", "f"], "the newest held card returns at the top");
+        o.dismiss(4);
+        compare(ids(o), ["a", "b", "c", "d", "e"]);
+        for (let i = 0; i < 4; i++)
+            o.dismiss(0);
+        compare(ids(o), ["e"]);
+        verify(o.visible);
+        o.dismiss(0);
+        verify(!o.visible, "hidden once every card, held or shown, is gone");
+        compare(dismissedSpy.count, 7);
+    }
+
     function test_dismissRemovesCardAndHidesWhenEmpty() {
         const o = make();
         o.push(msg("a"));
