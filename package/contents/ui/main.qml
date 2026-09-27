@@ -80,6 +80,12 @@ PlasmoidItem {
         unreadCount = 0;
     }
 
+    function dismissMessage(id) {
+        root.messages = root.messages.filter(function (m) {
+            return m.id !== id;
+        });
+    }
+
     function markAllRead() {
         unreadCount = 0;
     }
@@ -139,6 +145,9 @@ PlasmoidItem {
             root.markAllRead()
         onReconnectRequested: root.reconnect()
         onClearRequested: root.clearMessages()
+        onDismissRequested: function (id) {
+            root.dismissMessage(id);
+        }
         onConfigureRequested: root.openConfig()
     }
 

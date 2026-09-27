@@ -63,6 +63,7 @@ PlasmaCore.Dialog {
 
     signal reconnectRequested
     signal clearRequested
+    signal dismissRequested(string id)
     signal configureRequested
 
     // A location on a panel edge makes Plasma ask KWin's Sliding Popups
@@ -404,6 +405,11 @@ PlasmaCore.Dialog {
                                 else if (feed.currentIndex === index)
                                     feed.currentIndex = -1;
                             }
+                            onDismissed: {
+                                if (feed.currentIndex === index)
+                                    feed.currentIndex = -1;
+                                dialog.dismissRequested(modelData.id || "");
+                            }
                             onCopied: {
                                 dialog.justCopied = true;
                                 copiedReset.restart();
@@ -421,7 +427,7 @@ PlasmaCore.Dialog {
                                 return i18n("copied to clipboard");
                             if (!dialog.configured)
                                 return i18n("enter to configure, esc to close");
-                            return i18n("click to copy, r reconnect, c clear, esc to close");
+                            return i18n("click dismiss, right-click copy, r reconnect, c clear, esc close");
                         }
                         color: "#86868d"
                         font.family: "Hack"

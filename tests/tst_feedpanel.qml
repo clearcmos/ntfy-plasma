@@ -36,6 +36,11 @@ TestCase {
     }
 
     SignalSpy {
+        id: dismissSpy
+        signalName: "dismissRequested"
+    }
+
+    SignalSpy {
         id: configureSpy
         signalName: "configureRequested"
     }
@@ -52,6 +57,8 @@ TestCase {
         configureSpy.target = p;
         clearSpy.clear();
         clearSpy.target = p;
+        dismissSpy.clear();
+        dismissSpy.target = p;
         return p;
     }
 
@@ -157,6 +164,30 @@ TestCase {
         list.currentIndex = 0;
         p.copyCurrent();
         compare(findChild(p.mainItem, "hint").text, "copied to clipboard");
+    }
+
+    function test_clickDismissesThatRow() {
+        const p = make({
+            messages: msgs(3)
+        });
+        p.open();
+        const list = findChild(p.mainItem, "feed");
+        tryVerify(function () {
+            return list.itemAtIndex(1) !== null;
+        }, 1000);
+        waitForRendering(p.mainItem);
+        mouseClick(list.itemAtIndex(1), 20, 20);
+        tryCompare(dismissSpy, "count", 1, 2000);
+        // Rows are newest first, so the second row is m1.
+        compare(dismissSpy.signalArguments[0][0], "m1");
+        verify(p.shown);
+    }
+
+    function test_hintFitsTheCard() {
+        const p = make();
+        p.open();
+        const hint = findChild(p.mainItem, "hint");
+        verify(hint.implicitWidth + 29 * 2 <= p.panelWidth, "hint " + hint.implicitWidth + "px");
     }
 
     function test_keys() {

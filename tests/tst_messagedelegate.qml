@@ -5,6 +5,9 @@ import "../package/contents/ui"
 TestCase {
     id: tc
     name: "MessageDelegate"
+    when: windowShown
+    // TestCase is hidden by default, and a hidden row takes no clicks.
+    visible: true
     width: 600
     height: 400
 
@@ -20,6 +23,11 @@ TestCase {
         signalName: "copied"
     }
 
+    SignalSpy {
+        id: dismissedSpy
+        signalName: "dismissed"
+    }
+
     function init() {
         failOnWarning(/\.qml:\d+/);
     }
@@ -30,6 +38,8 @@ TestCase {
         }, props || {}));
         copiedSpy.clear();
         copiedSpy.target = d;
+        dismissedSpy.clear();
+        dismissedSpy.target = d;
         return d;
     }
 
@@ -132,5 +142,25 @@ TestCase {
         });
         d.copy();
         compare(copiedSpy.count, 1);
+    }
+
+    function test_leftClickDismissesAfterTheSwipe() {
+        const d = make({
+            message: "x"
+        });
+        mouseClick(d, 10, 10, Qt.LeftButton);
+        verify(d.dismissing);
+        compare(dismissedSpy.count, 0, "the row swipes away first");
+        tryCompare(dismissedSpy, "count", 1, 2000);
+        compare(copiedSpy.count, 0);
+    }
+
+    function test_rightClickCopies() {
+        const d = make({
+            message: "x"
+        });
+        mouseClick(d, 10, 10, Qt.RightButton);
+        compare(copiedSpy.count, 1);
+        verify(!d.dismissing);
     }
 }

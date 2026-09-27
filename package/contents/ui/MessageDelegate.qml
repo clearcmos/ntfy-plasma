@@ -22,7 +22,11 @@ Rectangle {
     // the row itself is inset 14px from the card edge.
     readonly property int inset: 15
 
+    // True from a dismiss click until the row has swiped away.
+    property bool dismissing: false
+
     signal copied
+    signal dismissed
     signal hovered(bool inside)
 
     implicitHeight: layout.implicitHeight + 24
@@ -158,12 +162,22 @@ Rectangle {
         swipe.start();
     }
 
+    // Swipe this row away on its own, then report it dismissed.
+    function dismiss() {
+        if (root.dismissing)
+            return;
+        root.dismissing = true;
+        root.swipeAway(0);
+    }
+
     transform: Translate {
         id: slide
     }
 
     SequentialAnimation {
         id: swipe
+        onFinished: if (root.dismissing)
+            root.dismissed()
         PauseAnimation {
             id: swipeDelay
         }
@@ -196,7 +210,7 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onEntered: root.hovered(true)
         onExited: root.hovered(false)
 
@@ -205,7 +219,10 @@ Rectangle {
                 Qt.openUrlExternally(root.msg.click);
                 return;
             }
-            root.copy();
+            if (mouse.button === Qt.RightButton)
+                root.copy();
+            else if (mouse.button === Qt.LeftButton)
+                root.dismiss();
         }
     }
 }

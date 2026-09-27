@@ -10,7 +10,7 @@ KDE Plasma 6 widget for ntfy.sh: live notification feed in your panel.
 - Auto-reconnect with capped exponential backoff
 - Compact panel icon with unread badge and disconnect indicator; middle-click it to mark everything read
 - High and max priority messages get an accent outline
-- Click a message to copy it; middle-click opens its `Click:` URL in the browser
+- Click a message to dismiss it, right-click to copy it; middle-click opens its `Click:` URL in the browser
 - Keyboard on the feed panel: arrows select a row, Enter copies it, `r` reconnects, `c` clears, Esc closes. Reconnect and Clear Feed are also in the icon's right-click menu
 - Markdown bodies and emoji tag shortcodes (optional)
 - No account or auth required for public ntfy.sh; self-hosted servers also supported
