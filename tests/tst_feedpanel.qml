@@ -96,13 +96,17 @@ TestCase {
         tryCompare(p, "visible", false, 1000);
     }
 
-    function test_newestFirst() {
-        const p = make({
-            messages: msgs(3)
-        });
-        compare(p.rows.map(function (m) {
-            return m.id;
-        }), ["m2", "m1", "m0"]);
+    function test_newestByTheIcon() {
+        function ids(edge) {
+            return make({
+                messages: msgs(3),
+                edge: edge
+            }).rows.map(function (m) {
+                return m.id;
+            });
+        }
+        compare(ids(PlasmaCore.Types.BottomEdge), ["m0", "m1", "m2"], "bottom panel: newest last, at the bottom");
+        compare(ids(PlasmaCore.Types.TopEdge), ["m2", "m1", "m0"], "top panel: newest first, at the top");
     }
 
     function test_statusLine_data() {
@@ -139,7 +143,8 @@ TestCase {
 
     function test_arrowsHighlightFromNothing() {
         const p = make({
-            messages: msgs(3)
+            messages: msgs(3),
+            edge: PlasmaCore.Types.TopEdge
         });
         p.open();
         const list = findChild(p.mainItem, "feed");
@@ -153,6 +158,97 @@ TestCase {
         list.currentIndex = -1;
         p.step(-1);
         compare(list.currentIndex, 2, "first up picks the last row");
+    }
+
+    // On a bottom panel the newest row is the bottom one, the list's last.
+    function test_arrowsFollowTheScreenOnABottomPanel() {
+        const p = make({
+            messages: msgs(3)
+        });
+        p.open();
+        const list = findChild(p.mainItem, "feed");
+        p.step(-1);
+        compare(list.currentItem.msg.id, "m2", "first up picks the bottom row, the newest");
+        p.step(-1);
+        compare(list.currentItem.msg.id, "m1", "up moves to the older row above");
+    }
+
+    function test_newestSitsByTheIcon_data() {
+        return [
+            {
+                tag: "bottom",
+                edge: PlasmaCore.Types.BottomEdge,
+                newestBelow: true
+            },
+            {
+                tag: "top",
+                edge: PlasmaCore.Types.TopEdge,
+                newestBelow: false
+            }
+        ];
+    }
+
+    function test_newestSitsByTheIcon(data) {
+        const p = make({
+            messages: msgs(3),
+            edge: data.edge
+        });
+        p.open();
+        const list = findChild(p.mainItem, "feed");
+        tryVerify(function () {
+            return list.itemAtIndex(2) !== null;
+        }, 1000);
+        function y(id) {
+            for (let i = 0; i < list.count; i++) {
+                const row = list.itemAtIndex(i);
+                if (row.msg.id === id)
+                    return row.mapToItem(p.mainItem, 0, 0).y;
+            }
+            return NaN;
+        }
+        compare(y("m2") > y("m0"), data.newestBelow);
+    }
+
+    // A scrolling list opens on its newest rows, beside the icon.
+    function test_scrollingListOpensAtTheNewest() {
+        const p = make({
+            messages: msgs(8)
+        });
+        p.open();
+        const list = findChild(p.mainItem, "feed");
+        tryVerify(function () {
+            return list.contentHeight > list.height && list.atYEnd;
+        }, 2000);
+        p.messages = msgs(9);
+        tryVerify(function () {
+            return list.atYEnd;
+        }, 2000, "a new message keeps the newest in view");
+    }
+
+    // Scrolled up to older rows, a dismiss must not snap back to the end.
+    function test_wheelUpStopsHoldingTheEnd() {
+        const p = make({
+            messages: msgs(8)
+        });
+        p.open();
+        const list = findChild(p.mainItem, "feed");
+        tryVerify(function () {
+            return list.contentHeight > list.height && list.atYEnd;
+        }, 2000);
+        waitForRendering(p.mainItem);
+        mouseWheel(list, 40, 40, 0, 120);
+        tryVerify(function () {
+            return !list.moving && !list.atYEnd;
+        }, 3000, "the wheel scrolled up");
+        verify(!p.followEnd, "the wheel lets go of the end");
+        list.flick(0, 5000);
+        tryVerify(function () {
+            return !list.moving && list.atYBeginning;
+        }, 3000, "a flick reaches the oldest rows");
+        verify(!p.followEnd);
+        list.itemAtIndex(list.count - 1).dismiss();
+        tryCompare(dismissSpy, "count", 1, 2000);
+        verify(list.atYBeginning, "the view stays on the oldest rows");
     }
 
     function test_copyShowsHint() {
@@ -185,31 +281,52 @@ TestCase {
 
     // Regression: dismissing a row reflowed the list at once, so the rows
     // below jumped up into the gap, then drifted back down while the card's
-    // top edge eased to its new height. On a bottom panel the rows below a
-    // dismissed one now stay put while the gap closes.
-    function test_dismissKeepsTheRowsBelowStill() {
+    // top edge eased to its new height. And while the list scrolled, the
+    // gap closed from below instead, because the card could not shrink.
+    // On a bottom panel the rows below a dismissed one now stay put in both
+    // cases: the newest rows sit by the panel and the list holds its end,
+    // so what closes the gap is always the content above.
+    function test_dismissKeepsTheRowsBelowStill_data() {
+        return [
+            {
+                tag: "fits",
+                count: 3
+            },
+            {
+                tag: "scrolls",
+                count: 8
+            }
+        ];
+    }
+
+    function test_dismissKeepsTheRowsBelowStill(data) {
         const p = make({
-            messages: msgs(3)
+            messages: msgs(data.count)
         });
         p.open();
         const list = findChild(p.mainItem, "feed");
         tryVerify(function () {
-            return list.itemAtIndex(2) !== null && p.cardHeight === p.targetHeight;
+            return list.itemAtIndex(list.count - 1) !== null && p.cardHeight === p.targetHeight;
         }, 2000);
-        const below = list.itemAtIndex(2);
+        const scrolls = list.contentHeight > list.height;
+        compare(scrolls, data.tag === "scrolls");
+        const below = list.itemAtIndex(list.count - 1);
         function top() {
             return below.mapToItem(p.mainItem, 0, 0).y;
         }
         const start = top();
         const tall = p.cardHeight;
-        list.itemAtIndex(1).dismiss();
+        list.itemAtIndex(list.count - 2).dismiss();
         let drift = 0;
         while (dismissSpy.count === 0) {
             drift = Math.max(drift, Math.abs(top() - start));
             wait(16);
         }
         compare(drift, 0, "the row below stays put while the gap closes");
-        verify(p.cardHeight < tall, "the card shrank with the gap");
+        if (scrolls)
+            compare(p.cardHeight, tall, "a scrolling list keeps the card's height");
+        else
+            verify(p.cardHeight < tall, "the card shrank with the gap");
         compare(p.cardHeight, p.targetHeight, "the card followed the collapse");
         compare(p.collapsingRows, 0);
         const id = dismissSpy.signalArguments[0][0];
@@ -217,7 +334,7 @@ TestCase {
             return m.id !== id;
         });
         wait(500);
-        compare(list.itemAtIndex(1).mapToItem(p.mainItem, 0, 0).y, start, "nothing moves when the feed drops the row");
+        compare(list.itemAtIndex(list.count - 1).mapToItem(p.mainItem, 0, 0).y, start, "nothing moves when the feed drops the row");
     }
 
     function test_hintFitsTheCard() {

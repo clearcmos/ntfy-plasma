@@ -34,8 +34,16 @@ PlasmaCore.Dialog {
     readonly property int shadowSide: 30
     readonly property int shadowTop: 20
     readonly property int shadowBottom: 40
-    // Newest first.
-    readonly property var rows: dialog.messages.slice().reverse()
+    // Newest by the panel icon. On a bottom panel the list runs oldest to
+    // newest and rests scrolled to its end, so older rows scroll off the top
+    // and a dismissed row's gap always closes the same way: the rows between
+    // it and the panel stay put, and everything beyond them slides in,
+    // whether or not the list scrolls.
+    readonly property bool fromBottom: dialog.edge === PlasmaCore.Types.BottomEdge
+    readonly property var rows: dialog.fromBottom ? dialog.messages.slice() : dialog.messages.slice().reverse()
+    // True while a bottom panel's list should hold its end, the newest row,
+    // in place as rows change height. Scrolling away from the end drops it.
+    property bool followEnd: true
     property bool justCopied: false
     // True while the rows swipe away on a clear, before clearRequested.
     property bool clearing: false
@@ -84,6 +92,7 @@ PlasmaCore.Dialog {
             return;
         feed.currentIndex = -1;
         dialog.justCopied = false;
+        dialog.showEnd();
         dialog.fit();
         dialog.place();
         dialog.visible = true;
@@ -176,6 +185,12 @@ PlasmaCore.Dialog {
     function copyCurrent() {
         if (feed.currentItem)
             (feed.currentItem as MessageDelegate).copy();
+    }
+
+    function showEnd() {
+        dialog.followEnd = true;
+        if (dialog.fromBottom)
+            feed.positionViewAtEnd();
     }
 
     function step(delta) {
@@ -380,6 +395,11 @@ PlasmaCore.Dialog {
                         visible: count > 0
                         clip: true
                         model: dialog.rows
+                        // A new model rebuilds the list at its start.
+                        onModelChanged: dialog.showEnd()
+                        onContentHeightChanged: if (dialog.fromBottom && dialog.followEnd)
+                            feed.positionViewAtEnd()
+                        onMovementEnded: dialog.followEnd = feed.atYEnd
                         currentIndex: -1
                         highlightFollowsCurrentItem: false
                         boundsBehavior: Flickable.StopAtBounds
