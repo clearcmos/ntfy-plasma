@@ -76,11 +76,24 @@ function appendMessage(list, msg, max) {
     return next;
 }
 
-// Date and time a message arrived, from ntfy's unix-seconds `time`, or ""
-// when it is missing. The feed holds backfill from past days, so a bare
-// clock time cannot say when a row came in.
-function stamp(sec) {
+// When a message arrived, from ntfy's unix-seconds `time`, relative to
+// nowMs: the clock time today, then "Yesterday", the weekday within a week,
+// the date, and the year once it differs. "" when the time is missing.
+function stamp(sec, nowMs) {
     if (!sec)
         return "";
-    return Qt.formatDateTime(new Date(sec * 1000), "ddd MMM d, h:mm AP");
+    const t = new Date(sec * 1000);
+    const now = new Date(nowMs);
+    const clock = Qt.formatTime(t, "h:mm AP");
+    // Calendar days, rounded so a DST shift does not skew the count.
+    const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+    if (days === 0)
+        return clock;
+    if (days === 1)
+        return "Yesterday, " + clock;
+    if (days > 1 && days < 7)
+        return Qt.formatDate(t, "ddd") + ", " + clock;
+    if (t.getFullYear() === now.getFullYear())
+        return Qt.formatDate(t, "MMM d") + ", " + clock;
+    return Qt.formatDate(t, "MMM d, yyyy") + ", " + clock;
 }

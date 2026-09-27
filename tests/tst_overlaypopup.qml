@@ -131,4 +131,21 @@ TestCase {
         }, 2000, "the next card gets a window of its own height");
         verify(o.frameHeight < tall);
     }
+
+    // Regression: a card left on screen overnight kept its bare clock time,
+    // so in the morning it read as if it had arrived that day.
+    function test_cardStampFollowsTheClock() {
+        const o = make();
+        const sent = new Date(2026, 8, 26, 17, 4);
+        o.nowMs = new Date(2026, 8, 26, 17, 5).getTime();
+        o.push({
+            id: "a",
+            message: "body",
+            time: sent.getTime() / 1000
+        });
+        const label = findChild(findChild(o.mainItem, "card-a"), "time");
+        compare(label.text, "5:04 PM");
+        o.nowMs = new Date(2026, 8, 27, 8, 0).getTime();
+        compare(label.text, "Yesterday, 5:04 PM");
+    }
 }

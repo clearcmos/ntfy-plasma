@@ -11,6 +11,7 @@ Rectangle {
     property bool showDivider: true
     property bool renderMarkdown: true
     property bool highlighted: false
+    property double nowMs: Date.now()
     readonly property bool urgent: (root.msg && root.msg.priority ? root.msg.priority : 3) >= 4
     readonly property string heading: {
         const title = root.msg.title || root.msg.topic || "";
@@ -70,7 +71,7 @@ Rectangle {
             }
 
             Text {
-                text: Feed.stamp(root.msg.time)
+                text: Feed.stamp(root.msg.time, root.nowMs)
                 color: "#86868d"
                 font.family: "Hack"
                 font.pixelSize: 13

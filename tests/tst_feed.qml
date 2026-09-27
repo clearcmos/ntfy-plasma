@@ -221,11 +221,49 @@ TestCase {
         compare(p.y, data.y, "y");
     }
 
-    // Regression: feed rows showed only a clock time, so a backfilled
-    // message from an earlier day read as if it had just arrived.
-    function test_stampIncludesTheDate() {
-        const sec = new Date(2026, 8, 27, 15, 42).getTime() / 1000;
-        compare(Feed.stamp(sec), "Sun Sep 27, 3:42 PM");
-        compare(Feed.stamp(undefined), "");
+    function test_stamp_data() {
+        const now = new Date(2026, 8, 27, 9, 0).getTime();
+        function at(y, mo, d, h, mi) {
+            return new Date(y, mo, d, h, mi).getTime() / 1000;
+        }
+        return [
+            {
+                tag: "today",
+                sec: at(2026, 8, 27, 8, 5),
+                expected: "8:05 AM"
+            },
+            {
+                tag: "yesterday",
+                sec: at(2026, 8, 26, 17, 4),
+                expected: "Yesterday, 5:04 PM"
+            },
+            {
+                tag: "this week",
+                sec: at(2026, 8, 22, 17, 4),
+                expected: "Tue, 5:04 PM"
+            },
+            {
+                tag: "this year",
+                sec: at(2026, 8, 19, 17, 4),
+                expected: "Sep 19, 5:04 PM"
+            },
+            {
+                tag: "last year",
+                sec: at(2025, 8, 19, 17, 4),
+                expected: "Sep 19, 2025, 5:04 PM"
+            },
+            {
+                tag: "missing",
+                sec: undefined,
+                expected: ""
+            }
+        ].map(function (d) {
+            d.now = now;
+            return d;
+        });
+    }
+
+    function test_stamp(data) {
+        compare(Feed.stamp(data.sec, data.now), data.expected);
     }
 }

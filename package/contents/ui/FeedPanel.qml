@@ -18,6 +18,8 @@ PlasmaCore.Dialog {
     property string topicSummary: ""
     property bool showDividers: true
     property bool renderMarkdown: true
+    // The clock the row timestamps are relative to.
+    property double nowMs: Date.now()
     // The panel icon the card opens beside, and the panel edge it sits on.
     property Item anchorItem: null
     property int edge: PlasmaCore.Types.BottomEdge
@@ -393,6 +395,7 @@ PlasmaCore.Dialog {
                             highlighted: feed.currentIndex === index
                             showDivider: dialog.showDividers && index > 0
                             renderMarkdown: dialog.renderMarkdown
+                            nowMs: dialog.nowMs
                             onHovered: function (inside) {
                                 if (dialog.clearing)
                                     return;

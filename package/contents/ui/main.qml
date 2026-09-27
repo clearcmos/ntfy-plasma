@@ -16,6 +16,17 @@ PlasmoidItem {
     // plasmashell restart does not replay the whole backfill on screen.
     readonly property double startedSec: Date.now() / 1000
 
+    // One clock for every timestamp label, so labels roll over to
+    // "Yesterday" and beyond while they sit on screen.
+    property double nowMs: Date.now()
+
+    Timer {
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: root.nowMs = Date.now()
+    }
+
     readonly property url iconSource: Qt.resolvedUrl("../icons/ntfy-tower.svg")
 
     // Same test the client uses, so a topics field of only commas does not
@@ -100,6 +111,7 @@ PlasmoidItem {
 
     OverlayPopup {
         id: overlay
+        nowMs: root.nowMs
         screenRect: Plasmoid.containment ? Plasmoid.containment.screenGeometry : Qt.rect(0, 0, 1920, 1080)
         onCardCountChanged: if (cardCount === 0)
             edgeFlash.stop()
@@ -120,6 +132,7 @@ PlasmoidItem {
         topicSummary: root.topicSummary
         showDividers: Plasmoid.configuration.showDividers
         renderMarkdown: Plasmoid.configuration.renderMarkdown
+        nowMs: root.nowMs
         edge: Plasmoid.location
         screenRect: overlay.screenRect
         onShownChanged: if (shown)

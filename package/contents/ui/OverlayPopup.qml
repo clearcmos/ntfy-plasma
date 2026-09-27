@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import QtMultimedia
 import org.kde.plasma.core as PlasmaCore
 import "Emoji.js" as Emoji
+import "Feed.js" as Feed
 
 PlasmaCore.Dialog {
     id: dialog
@@ -27,6 +28,9 @@ PlasmaCore.Dialog {
     readonly property int maxCards: 5
     // Off in the test suite so running it does not play the chime.
     property bool chimeEnabled: true
+    // The clock the card timestamps are relative to, so a card left up
+    // overnight gains its date.
+    property double nowMs: Date.now()
     // The height the window keeps for the cards. It grows with the stack but
     // never shrinks while cards are on screen: resizing the visible window
     // flickered every card for a frame on each dismissal. It resets once
@@ -275,7 +279,8 @@ PlasmaCore.Dialog {
                         RowLayout {
                             Layout.fillWidth: true
                             Text {
-                                text: card.sentAt ? Qt.formatTime(new Date(card.sentAt * 1000), "h:mm AP") : ""
+                                objectName: "time"
+                                text: Feed.stamp(card.sentAt, dialog.nowMs)
                                 color: "#86868d"
                                 font.family: "Hack"
                                 font.pixelSize: 13
