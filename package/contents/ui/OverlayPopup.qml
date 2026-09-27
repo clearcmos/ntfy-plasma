@@ -73,8 +73,11 @@ PlasmaCore.Dialog {
         const id = cardModel.get(i).msgId;
         cardModel.remove(i);
         // A hidden window does not lay the stack out again, so its height
-        // would never come down on its own.
+        // would never come down on its own. Lay it out before hiding, or it
+        // keeps the last card's height and a next card of the same height
+        // never grows the window.
         if (cardModel.count === 0) {
+            stack.forceLayout();
             visible = false;
             frameHeight = 0;
         }

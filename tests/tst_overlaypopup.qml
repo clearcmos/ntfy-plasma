@@ -132,6 +132,26 @@ TestCase {
         verify(o.frameHeight < tall);
     }
 
+    // Regression: dismissing the last card hid the window before the stack
+    // laid out again, so it kept the old card's height. A next card of the
+    // same height then changed nothing, the window never grew, and the card
+    // showed cut off below its heading.
+    function test_sameSizeCardAfterTheLastGoesGetsItsHeight() {
+        const o = make();
+        const stack = findChild(o.mainItem, "stack");
+        o.push(msg("a"));
+        tryVerify(function () {
+            return stack.height > 0 && o.frameHeight === stack.height;
+        }, 2000);
+        const one = o.frameHeight;
+        o.dismiss(0);
+        compare(o.frameHeight, 0);
+        o.push(msg("b"));
+        tryVerify(function () {
+            return o.frameHeight === one;
+        }, 2000, "the window is tall enough for the card again");
+    }
+
     // Regression: a card left on screen overnight kept its bare clock time,
     // so in the morning it read as if it had arrived that day.
     function test_cardStampFollowsTheClock() {
