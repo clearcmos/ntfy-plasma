@@ -183,6 +183,43 @@ TestCase {
         verify(p.shown);
     }
 
+    // Regression: dismissing a row reflowed the list at once, so the rows
+    // below jumped up into the gap, then drifted back down while the card's
+    // top edge eased to its new height. On a bottom panel the rows below a
+    // dismissed one now stay put while the gap closes.
+    function test_dismissKeepsTheRowsBelowStill() {
+        const p = make({
+            messages: msgs(3)
+        });
+        p.open();
+        const list = findChild(p.mainItem, "feed");
+        tryVerify(function () {
+            return list.itemAtIndex(2) !== null && p.cardHeight === p.targetHeight;
+        }, 2000);
+        const below = list.itemAtIndex(2);
+        function top() {
+            return below.mapToItem(p.mainItem, 0, 0).y;
+        }
+        const start = top();
+        const tall = p.cardHeight;
+        list.itemAtIndex(1).dismiss();
+        let drift = 0;
+        while (dismissSpy.count === 0) {
+            drift = Math.max(drift, Math.abs(top() - start));
+            wait(16);
+        }
+        compare(drift, 0, "the row below stays put while the gap closes");
+        verify(p.cardHeight < tall, "the card shrank with the gap");
+        compare(p.cardHeight, p.targetHeight, "the card followed the collapse");
+        compare(p.collapsingRows, 0);
+        const id = dismissSpy.signalArguments[0][0];
+        p.messages = p.messages.filter(function (m) {
+            return m.id !== id;
+        });
+        wait(500);
+        compare(list.itemAtIndex(1).mapToItem(p.mainItem, 0, 0).y, start, "nothing moves when the feed drops the row");
+    }
+
     function test_hintFitsTheCard() {
         const p = make();
         p.open();

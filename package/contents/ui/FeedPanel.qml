@@ -39,6 +39,9 @@ PlasmaCore.Dialog {
     property bool justCopied: false
     // True while the rows swipe away on a clear, before clearRequested.
     property bool clearing: false
+    // Rows closing the gap a dismissed row left. Their collapse is the
+    // motion, so the card follows it frame by frame instead of easing.
+    property int collapsingRows: 0
     // Delay between one row's swipe and the next, top to bottom: long
     // enough that each row is mostly gone before the next one moves.
     readonly property int swipeStagger: 250
@@ -158,6 +161,11 @@ PlasmaCore.Dialog {
         if (t > dialog.frameHeight) {
             dialog.frameHeight = t;
             dialog.place();
+        }
+        if (dialog.collapsingRows > 0) {
+            resize.stop();
+            dialog.cardHeight = t;
+            return;
         }
         resize.to = t;
         resize.restart();
@@ -388,6 +396,7 @@ PlasmaCore.Dialog {
                         }
 
                         delegate: MessageDelegate {
+                            id: row
                             required property var modelData
                             required property int index
 
@@ -405,6 +414,9 @@ PlasmaCore.Dialog {
                                 else if (feed.currentIndex === index)
                                     feed.currentIndex = -1;
                             }
+                            onCollapsingChanged: dialog.collapsingRows += row.collapsing ? 1 : -1
+                            Component.onDestruction: if (row.collapsing)
+                                dialog.collapsingRows -= 1
                             onDismissed: {
                                 if (feed.currentIndex === index)
                                     feed.currentIndex = -1;

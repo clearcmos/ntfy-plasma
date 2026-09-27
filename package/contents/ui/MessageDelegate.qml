@@ -22,14 +22,20 @@ Rectangle {
     // the row itself is inset 14px from the card edge.
     readonly property int inset: 15
 
-    // True from a dismiss click until the row has swiped away.
+    // True from a dismiss click until the row has swiped away and closed
+    // its gap.
     property bool dismissing: false
+    // True while the swiped-away row shrinks to nothing, so the rows around
+    // it close the gap before the feed drops it.
+    readonly property bool collapsing: collapse.running
+    property real openFraction: 1
 
     signal copied
     signal dismissed
     signal hovered(bool inside)
 
-    implicitHeight: layout.implicitHeight + 24
+    // Whole pixels, so the card and the list round alike mid-collapse.
+    implicitHeight: Math.round((layout.implicitHeight + 24) * root.openFraction)
     radius: 7
     color: root.highlighted ? "#25252a" : "#1f1f23"
     border.width: root.urgent ? 1 : 0
@@ -177,7 +183,7 @@ Rectangle {
     SequentialAnimation {
         id: swipe
         onFinished: if (root.dismissing)
-            root.dismissed()
+            collapse.start()
         PauseAnimation {
             id: swipeDelay
         }
@@ -197,6 +203,16 @@ Rectangle {
                 easing.type: Easing.InOutCubic
             }
         }
+    }
+
+    NumberAnimation {
+        id: collapse
+        target: root
+        property: "openFraction"
+        to: 0
+        duration: 300
+        easing.type: Easing.InOutCubic
+        onFinished: root.dismissed()
     }
 
     function copy() {
