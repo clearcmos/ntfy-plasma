@@ -97,3 +97,40 @@ function stamp(sec, nowMs) {
         return Qt.formatDate(t, "MMM d") + ", " + clock;
     return Qt.formatDate(t, "MMM d, yyyy") + ", " + clock;
 }
+
+// The desktop entry install.sh deploys. Plasma keeps a notification in its
+// history only when the notification names an installed desktop entry.
+const desktopEntry = "io.github.clearcmos.ntfy";
+
+// Quote s as one POSIX shell word.
+function shellQuote(s) {
+    return "'" + String(s).replace(/'/g, "'\\''") + "'";
+}
+
+// Plasma renders notification bodies as markup, so a message's own <, >
+// and & must arrive as text.
+function escapeMarkup(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// The notify-send command that lists msg under Plasma's notification bell.
+// Popups are off for the desktop entry (install.sh), so the only thing that
+// marks the entry unread is the server's own expiry timer, which Plasma arms
+// for 60 s plus the timeout given here. `seq` makes each command string
+// unique, because the executable engine keys running commands by their text.
+function notifyCommand(msg, seq) {
+    const args = ["notify-send", "--print-id", "--app-name=ntfy", "--expire-time=1000", "--hint=string:desktop-entry:" + desktopEntry, "--hint=boolean:suppress-sound:true", "--", msg.title || msg.topic || "ntfy", escapeMarkup(msg.message || "")];
+    return args.map(shellQuote).join(" ") + " # " + seq;
+}
+
+// The notification id notify-send --print-id wrote, or 0.
+function notificationId(stdout) {
+    const s = String(stdout || "").trim();
+    return /^[1-9][0-9]*$/.test(s) ? Number(s) : 0;
+}
+
+// The command that removes notification `id` from Plasma's history. Closed
+// by the app that sent it, Plasma drops a notification instead of keeping it.
+function closeCommand(id) {
+    return "gdbus call --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications --method org.freedesktop.Notifications.CloseNotification " + Number(id);
+}

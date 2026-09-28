@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
+import org.kde.plasma.plasma5support as P5Support
 import org.kde.kirigami as Kirigami
 import "Feed.js" as Feed
 
@@ -107,6 +108,7 @@ PlasmoidItem {
             if (msg.time && msg.time >= root.startedSec) {
                 overlay.push(msg);
                 edgeFlash.trigger();
+                kdeMirror.post(msg);
             }
         }
 
@@ -121,6 +123,29 @@ PlasmoidItem {
         screenRect: Plasmoid.containment ? Plasmoid.containment.screenGeometry : Qt.rect(0, 0, 1920, 1080)
         onCardCountChanged: if (cardCount === 0)
             edgeFlash.stop()
+        onDismissed: function (id) {
+            kdeMirror.close(id);
+        }
+    }
+
+    // Optional: the same alerts listed under Plasma's notification bell,
+    // without a popup or a sound of their own.
+    KdeMirror {
+        id: kdeMirror
+        enabled: Plasmoid.configuration.kdeNotifications
+        onRun: function (command) {
+            shell.connectSource(command);
+        }
+    }
+
+    P5Support.DataSource {
+        id: shell
+        engine: "executable"
+        connectedSources: []
+        onNewData: function (sourceName, data) {
+            disconnectSource(sourceName);
+            kdeMirror.finished(sourceName, data["stdout"] || "");
+        }
     }
 
     EdgeFlash {

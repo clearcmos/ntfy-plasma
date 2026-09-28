@@ -27,7 +27,8 @@ TestCase {
             cfg_maxMessages: 50,
             cfg_historySince: "12h",
             cfg_showDividers: false,
-            cfg_renderMarkdown: false
+            cfg_renderMarkdown: false,
+            cfg_kdeNotifications: true
         });
         compare(page.cfg_serverUrl, "https://ntfy.sh");
         compare(page.cfg_topics, "a,b");
@@ -35,5 +36,6 @@ TestCase {
         compare(page.cfg_historySince, "12h");
         compare(page.cfg_showDividers, false);
         compare(page.cfg_renderMarkdown, false);
+        compare(page.cfg_kdeNotifications, true);
     }
 }

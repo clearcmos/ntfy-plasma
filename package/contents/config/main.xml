@@ -30,5 +30,9 @@
             <label>Render Markdown in message bodies and emoji shortcodes in tags.</label>
             <default>true</default>
         </entry>
+        <entry name="kdeNotifications" type="Bool">
+            <label>Also list live alerts under Plasma's notification bell, silently, until their overlay card is dismissed.</label>
+            <default>false</default>
+        </entry>
     </group>
 </kcfg>

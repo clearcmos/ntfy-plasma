@@ -266,4 +266,61 @@ TestCase {
     function test_stamp(data) {
         compare(Feed.stamp(data.sec, data.now), data.expected);
     }
+
+    function test_shellQuoteKeepsQuotesInsideOneWord() {
+        compare(Feed.shellQuote("it's $(x)"), "'it'\\''s $(x)'");
+        compare(Feed.shellQuote(""), "''");
+    }
+
+    function test_escapeMarkup() {
+        compare(Feed.escapeMarkup("a < b & c > d"), "a &lt; b &amp; c &gt; d");
+    }
+
+    function test_notifyCommandQuotesEveryField() {
+        const cmd = Feed.notifyCommand({
+            title: "it's up",
+            message: "<b>$(rm -rf ~)</b>",
+            topic: "ops"
+        }, 7);
+        compare(cmd, "'notify-send' '--print-id' '--app-name=ntfy' '--expire-time=1000' '--hint=string:desktop-entry:io.github.clearcmos.ntfy' '--hint=boolean:suppress-sound:true' '--' 'it'\\''s up' '&lt;b&gt;$(rm -rf ~)&lt;/b&gt;' # 7");
+    }
+
+    function test_notifyCommandFallsBackToTheTopic() {
+        verify(Feed.notifyCommand({
+            topic: "ops"
+        }, 1).indexOf("'--' 'ops' ''") > 0);
+    }
+
+    function test_notificationId_data() {
+        return [
+            {
+                tag: "id",
+                input: "42\n",
+                expected: 42
+            },
+            {
+                tag: "empty",
+                input: "",
+                expected: 0
+            },
+            {
+                tag: "error text",
+                input: "Cannot connect",
+                expected: 0
+            },
+            {
+                tag: "zero",
+                input: "0",
+                expected: 0
+            }
+        ];
+    }
+
+    function test_notificationId(data) {
+        compare(Feed.notificationId(data.input), data.expected);
+    }
+
+    function test_closeCommand() {
+        compare(Feed.closeCommand(42), "gdbus call --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications --method org.freedesktop.Notifications.CloseNotification 42");
+    }
 }

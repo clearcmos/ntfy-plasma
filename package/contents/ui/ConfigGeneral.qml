@@ -12,6 +12,7 @@ Kirigami.FormLayout {
     property alias cfg_historySince: historySince.text
     property alias cfg_showDividers: showDividers.checked
     property alias cfg_renderMarkdown: renderMarkdown.checked
+    property alias cfg_kdeNotifications: kdeNotifications.checked
 
     QQC2.TextField {
         id: serverUrl
@@ -70,5 +71,20 @@ Kirigami.FormLayout {
         id: renderMarkdown
         Kirigami.FormData.label: i18n("Rich rendering:")
         text: i18n("Render Markdown and emoji tags")
+    }
+
+    QQC2.CheckBox {
+        id: kdeNotifications
+        Kirigami.FormData.label: i18n("Plasma notifications:")
+        text: i18n("Also list alerts under the notification bell")
+    }
+
+    QQC2.Label {
+        Layout.fillWidth: true
+        Layout.leftMargin: Kirigami.Units.smallSpacing
+        text: i18n("Off, the widget works on its own. On, each overlay alert is also listed under Plasma's bell, with no popup or sound, and dismissing its card removes it there. Needs install.sh.")
+        font.pointSize: Kirigami.Theme.smallFont.pointSize
+        color: Kirigami.Theme.disabledTextColor
+        wrapMode: Text.WordWrap
     }
 }

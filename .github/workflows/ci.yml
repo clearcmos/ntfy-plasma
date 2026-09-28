@@ -25,7 +25,7 @@ jobs:
       - name: Install Qt 6, Plasma, and check tools
         run: |
           pacman -Sy --noconfirm --needed archlinux-keyring
-          pacman -Su --noconfirm --needed diffutils make jq python shellcheck actionlint qt6-declarative qt6-multimedia kirigami libplasma ttf-hack
+          pacman -Su --noconfirm --needed diffutils make jq python shellcheck actionlint qt6-declarative qt6-multimedia kirigami libplasma plasma5support kconfig ttf-hack
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
