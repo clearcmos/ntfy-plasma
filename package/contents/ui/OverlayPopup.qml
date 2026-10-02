@@ -4,7 +4,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
-import QtMultimedia
 import org.kde.plasma.core as PlasmaCore
 import "Emoji.js" as Emoji
 import "Feed.js" as Feed
@@ -42,6 +41,9 @@ PlasmaCore.Dialog {
     property real frameHeight: 0
 
     signal dismissed(string id)
+    // main.qml plays the chime. Qt Multimedia stays out of plasmashell: its
+    // audio-device monitor crashed the shell whenever a Bluetooth sink left.
+    signal chimeRequested
 
     type: PlasmaCore.Dialog.Notification
     location: PlasmaCore.Types.Floating
@@ -54,7 +56,7 @@ PlasmaCore.Dialog {
 
     function push(msg) {
         if (chimeEnabled)
-            chime.play();
+            chimeRequested();
         const tags = Emoji.renderTags(msg.tags || []);
         const title = msg.title || msg.topic || "";
         cardModel.append({
@@ -107,14 +109,6 @@ PlasmaCore.Dialog {
     mainItem: Item {
         width: dialog.panelWidth + 2 * dialog.shadowSide
         height: dialog.frameHeight + dialog.shadowTop + dialog.shadowBottom
-
-        // Oxygen "power-plug" chime (outcome-success.ogg from oxygen-sounds,
-        // LGPL-3.0-or-later, see ../sounds/power-plug.wav.license), as WAV
-        // because SoundEffect only plays uncompressed audio.
-        SoundEffect {
-            id: chime
-            source: Qt.resolvedUrl("../sounds/power-plug.wav")
-        }
 
         ListModel {
             id: cardModel

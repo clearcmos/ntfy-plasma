@@ -291,6 +291,12 @@ TestCase {
         }, 1).indexOf("'--' 'ops' ''") > 0);
     }
 
+    // Pins the Qt Multimedia removal: the chime is a pw-play command, so
+    // plasmashell never loads the audio-device monitor that crashed it.
+    function test_chimeCommandQuotesTheDecodedPath() {
+        compare(Feed.chimeCommand("file:///a%20b/it's.wav", 3), "pw-play '/a b/it'\\''s.wav' # 3");
+    }
+
     function test_notificationId_data() {
         return [
             {

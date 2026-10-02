@@ -19,6 +19,11 @@ TestCase {
         signalName: "dismissed"
     }
 
+    SignalSpy {
+        id: chimeSpy
+        signalName: "chimeRequested"
+    }
+
     function init() {
         failOnWarning(/\.qml:\d+/);
     }
@@ -187,5 +192,18 @@ TestCase {
         compare(label.text, "5:04 PM");
         o.nowMs = new Date(2026, 8, 27, 8, 0).getTime();
         compare(label.text, "Yesterday, 5:04 PM");
+    }
+
+    // Pins the Qt Multimedia removal: the popup asks main.qml for the chime
+    // instead of playing it, only when chimeEnabled.
+    function test_pushRequestsTheChimeOnlyWhenEnabled() {
+        const o = make();
+        chimeSpy.target = o;
+        chimeSpy.clear();
+        o.push(msg("a"));
+        compare(chimeSpy.count, 0);
+        o.chimeEnabled = true;
+        o.push(msg("b"));
+        compare(chimeSpy.count, 1);
     }
 }

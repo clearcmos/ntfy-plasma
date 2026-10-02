@@ -123,6 +123,15 @@ function notifyCommand(msg, seq) {
     return args.map(shellQuote).join(" ") + " # " + seq;
 }
 
+// The command that plays the chime at `fileUrl` (a file:// URL). `seq` makes
+// each command string unique, because the executable engine keys running
+// commands by their text. Oxygen "power-plug" chime (outcome-success.ogg from
+// oxygen-sounds, LGPL-3.0-or-later, see ../sounds/power-plug.wav.license).
+function chimeCommand(fileUrl, seq) {
+    const path = decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""));
+    return "pw-play " + shellQuote(path) + " # " + seq;
+}
+
 // The notification id notify-send --print-id wrote, or 0.
 function notificationId(stdout) {
     const s = String(stdout || "").trim();

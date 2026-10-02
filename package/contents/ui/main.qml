@@ -28,6 +28,7 @@ PlasmoidItem {
         onTriggered: root.nowMs = Date.now()
     }
 
+    property int chimeSeq: 0
     readonly property url iconSource: Qt.resolvedUrl("../icons/ntfy-tower.svg")
 
     // Same test the client uses, so a topics field of only commas does not
@@ -125,6 +126,10 @@ PlasmoidItem {
             edgeFlash.stop()
         onDismissed: function (id) {
             kdeMirror.close(id);
+        }
+        onChimeRequested: {
+            root.chimeSeq += 1;
+            shell.connectSource(Feed.chimeCommand(Qt.resolvedUrl("../sounds/power-plug.wav"), root.chimeSeq));
         }
     }
 
