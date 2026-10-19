@@ -1,5 +1,7 @@
 # ntfy-plasma
 
+> **Archived 2026-10-18.** No longer maintained; the code stays here for reference.
+
 KDE Plasma 6 widget for ntfy.sh: live notification feed in your panel.
 
 ## Features
